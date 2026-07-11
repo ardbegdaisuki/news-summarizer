@@ -23,8 +23,8 @@ jobs:
         env:
           # NewsAPI設定
           NEWS_API_KEY: ${{ secrets.MY_NEWS_API_KEY }}
-          #SELECT_TOP_N: ${{ secrets.SELECT_TOP_N || 5 }}  # デフォルト5件
-          #MAX_ARTICLES: ${{ secrets.MAX_ARTICLES || 20 }} # デフォルト20件
+          SELECT_TOP_N: ${{ secrets.SELECT_TOP_N || 5 }}  # デフォルト5件
+          MAX_ARTICLES: ${{ secrets.MAX_ARTICLES || 20 }} # デフォルト20件
           SEARCH_KEYWORDS: ${{ secrets.SEARCH_KEYWORDS }}
           
           # 通知先設定

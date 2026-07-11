@@ -23,18 +23,21 @@ def init_ai_client():
                 api_key=os.getenv("DEEPSEEK_API_KEY"),
                 base_url="https://api.deepseek.com/v1"
             ),
-            "model": "deepseek-chat"
+            "model": "deepseek-chat",
+            "provider": "deepseek"
         }
     elif os.getenv("OPENAI_API_KEY"):
         return {
             "client": OpenAI(api_key=os.getenv("OPENAI_API_KEY")),
-            "model": get_model_name("openai")
+            "model": get_model_name("openai"),
+            "provider": "openai"
         }
     elif os.getenv("GEMINI_API_KEY"):
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
         return {
-            "client": genai.GenerativeModel(get_model_name("gemini")),  # ← ここでインスタンスを作成
-            "model": get_model_name("gemini")
+            "client": genai.GenerativeModel(get_model_name("gemini")),
+            "model": get_model_name("gemini"),
+            "provider": "gemini"
         }
     raise RuntimeError("有効なAI APIキーが設定されていません")
 
@@ -93,8 +96,8 @@ def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja")
     {text}
     """
     
-    if isinstance(ai_config["client"], genai.GenerativeModel):
-        response = ai_config["client"].generate_content(prompt)  # ← 直接使用
+    if ai_config["provider"] == "gemini":
+        response = ai_config["client"].generate_content(prompt)
         return response.text
     else:
         response = ai_config["client"].chat.completions.create(
@@ -116,25 +119,8 @@ def send_notification(message: str):
         "content": message  # Discord
     }
     requests.post(webhook_url, json=payload)
-def get_model_name(provider: str) -> str:
-    """Secretで指定されたモデル名を取得（デフォルト値付き）"""
-    model_map = {
-        "openai": os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-        "gemini": os.getenv("GEMINI_MODEL", "gemini-1.0-pro"),
-    }
-    model = model_map.get(provider.lower())
-    if model is None:
-        raise ValueError(f"不正なプロバイダー: {provider}")
-    return model
+
 if __name__ == "__main__":
-     try:
-            print(f"DEBUG: DEEPSEEK_API_KEY: {bool(os.getenv('DEEPSEEK_API_KEY'))}")
-            print(f"DEBUG: OPENAI_API_KEY: {bool(os.getenv('OPENAI_API_KEY'))}")
-            print(f"DEBUG: GEMINI_API_KEY: {bool(os.getenv('GEMINI_API_KEY'))}")
-            
-            ai_config = init_ai_client()
-            print(f"DEBUG: AI Config - client type: {type(ai_config['client'])}, model: {ai_config['model']}")
-    
     try:
         ai_config = init_ai_client()
         # articles = fetch_news()

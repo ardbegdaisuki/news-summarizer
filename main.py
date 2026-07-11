@@ -12,7 +12,8 @@ def get_model_name(provider: str) -> str:
     """Secretで指定されたモデル名を取得（デフォルト値付き）"""
     return {
         "openai": os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-        "gemini": os.getenv("GEMINI_MODEL", "gemini-1.0-pro"),
+        "gemini": os.getenv("GEMINI_MODEL", "gemini-1.5-pro"),
+        #"gemini": os.getenv("GEMINI_MODEL", "gemini-1.0-pro"),
     }.get(provider.lower())
 
 def init_ai_client():

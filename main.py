@@ -33,7 +33,7 @@ def init_ai_client():
     elif os.getenv("GEMINI_API_KEY"):
         genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
         return {
-            "client": genai,
+            "client": genai.GenerativeModel(get_model_name("gemini")),  # ← ここでインスタンスを作成
             "model": get_model_name("gemini")
         }
     raise RuntimeError("有効なAI APIキーが設定されていません")
@@ -94,8 +94,7 @@ def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja")
     """
     
     if isinstance(ai_config["client"], genai.GenerativeModel):
-        model = ai_config["client"].GenerativeModel(ai_config["model"])
-        response = model.generate_content(prompt)
+        response = ai_config["client"].generate_content(prompt)  # ← 直接使用
         return response.text
     else:
         response = ai_config["client"].chat.completions.create(

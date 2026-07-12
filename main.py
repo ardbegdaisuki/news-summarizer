@@ -184,12 +184,19 @@ def fetch_pubmed_papers():
             journal_elem = article.find(".//Journal/Title")
             journal = journal_elem.text if journal_elem is not None else "No journal"
         
-            # --- 追加：発表日（PubDate） ---
-            pub_year = article.findtext(".//PubDate/Year")
-            pub_month = article.findtext(".//PubDate/Month")
-            pub_day = article.findtext(".//PubDate/Day")
-        
-            # 日付が欠けている場合のフォールバック
+            # --- 追加：発表日（ArticleDate を優先） ---
+            article_date_elem = article.find(".//Article/ArticleDate[@DateType='Electronic']")
+            if article_date_elem is not None:
+                pub_year = article_date_elem.findtext("Year")
+                pub_month = article_date_elem.findtext("Month")
+                pub_day = article_date_elem.findtext("Day")
+            else:
+                # フォールバック：JournalIssue の PubDate
+                pub_year = article.findtext(".//Journal/JournalIssue/PubDate/Year")
+                pub_month = article.findtext(".//Journal/JournalIssue/PubDate/Month")
+                pub_day = article.findtext(".//Journal/JournalIssue/PubDate/Day")
+            
+            # 日付の組み立て
             if pub_year:
                 if pub_month and pub_day:
                     pub_date = f"{pub_year}-{pub_month}-{pub_day}"

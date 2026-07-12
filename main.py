@@ -10,8 +10,9 @@ import json
 
 # 環境変数読み込み
 # load_dotenv()
-
-SEEN_FILE = "seen_papers.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SEEN_FILE = os.path.join(BASE_DIR, "seen_papers.json")
+#SEEN_FILE = "seen_papers.json"
 
 def load_seen_papers():
     if not os.path.exists(SEEN_FILE):
@@ -202,6 +203,8 @@ def fetch_ranked_news():
 
 
 def fetch_pubmed_papers():
+    print("[DEBUG] 現在の作業ディレクトリ:", os.getcwd())
+    print("[DEBUG] seen_papers.json の保存先:", os.path.abspath(SEEN_FILE))
     """PubMedから複数キーワードで論文を取得し、重複を除外し、最後に最新5件だけ返す"""
     keywords = load_keywords()
     pubmed_keywords = keywords.get("pubmed", ["(AI OR Machine Learning) AND (research OR study)"])

@@ -19,6 +19,7 @@ def load_keywords():
         # journalsの変数をpubmedの検索ワードに展開
         journals = data.get("journals", {})
         pubmed_keywords = data.get("pubmed", [])
+        arxiv_keywords = data.get("arxiv", [])
         news_keywords = data.get("news", [])
         
         # PubMed検索ワードの変数展開
@@ -28,6 +29,14 @@ def load_keywords():
             for journal_key, journal_value in journals.items():
                 expanded = expanded.replace(f"@{journal_key}", journal_value)
             expanded_pubmed.append(expanded)
+        
+        # arXiv検索ワードの変数展開
+        expanded_arxiv = []
+        for keyword in arxiv_keywords:
+            expanded = keyword
+            for journal_key, journal_value in journals.items():
+                expanded = expanded.replace(f"@{journal_key}", journal_value)
+            expanded_arxiv.append(expanded)
         
         # News検索ワードの変数展開
         expanded_news = []
@@ -40,12 +49,14 @@ def load_keywords():
         return {
             "journals": journals,
             "pubmed": expanded_pubmed,
+            "arxiv": expanded_arxiv,
             "news": expanded_news
         }
     except FileNotFoundError:
         return {
             "journals": {},
             "pubmed": ["(AI OR Machine Learning) AND (research OR study)"],
+            "arxiv": ["all:machine+learning"],
             "news": ["(AI OR Machine Learning) AND (research OR study)"]
         }
 
@@ -255,7 +266,7 @@ def fetch_arxiv_papers():
     keywords = load_keywords()
     arxiv_queries = keywords.get("arxiv") if keywords else None
     query = None
-    if arxiv_queries:
+    if arxiv_queries and len(arxiv_queries) > 0:
         query = arxiv_queries[0]
     else:
         query = os.getenv("ARXIV_QUERY", "all:machine+learning")  # デフォルト簡易クエリ
@@ -326,7 +337,7 @@ def fetch_arxiv_papers():
         
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
     """翻訳&要約（要約だけを返す。雑誌名/日付は外で使う）"""
-    prompt = f"""以下の原文について、{target_lang}で要約だけを出力してください。雑誌名や発表日は出力しないでください。箇条書きやヘッダは不要です。
+    prompt = f"""以下の原文について、{target_lang}で要約だけを出力してください。雑誌名や発表日は出力しないでください。箇条書きやヘッダは不要[...]
 
 原文:
 {text}

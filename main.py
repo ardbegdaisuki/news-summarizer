@@ -494,8 +494,8 @@ if __name__ == "__main__":
         # PubMed論文
         for paper in papers:
             content = f"{paper['title']}\n\n{paper['abstract']}"
-            summary = "test"
-            #summary = translate_and_summarize(ai_config, content, target_lang)
+            #summary = "test"
+            summary = translate_and_summarize(ai_config, content, target_lang)
             all_sources.append({
                 "type": "paper",
                 "source": "PubMed",
@@ -510,8 +510,8 @@ if __name__ == "__main__":
         # arXiv論文
         for a in arxiv_papers:
             content = f"{a['title']}\n\n{a['abstract']}"
-            summary = "test"
-            #summary = translate_and_summarize(ai_config, content, target_lang)
+            #summary = "test"
+            summary = translate_and_summarize(ai_config, content, target_lang)
             all_sources.append({
                 "type": "paper",
                 "source": "arXiv",

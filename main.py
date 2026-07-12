@@ -180,22 +180,31 @@ def fetch_pubmed_papers():
             pmid_elem = article.find(".//PMID")
             title_elem = article.find(".//ArticleTitle")
             abstract_elem = article.find(".//AbstractText")
-            # --- 追加：Journal名 ---
+            # --- Journal名 ---
             journal_elem = article.find(".//Journal/Title")
             journal = journal_elem.text if journal_elem is not None else "No journal"
-        
-            # --- 追加：発表日（ArticleDate を優先） ---
-            article_date_elem = article.find(".//Article/ArticleDate[@DateType='Electronic']")
-            if article_date_elem is not None:
-                pub_year = article_date_elem.findtext("Year")
-                pub_month = article_date_elem.findtext("Month")
-                pub_day = article_date_elem.findtext("Day")
-            else:
-                # フォールバック：JournalIssue の PubDate
-                pub_year = article.findtext(".//Journal/JournalIssue/PubDate/Year")
-                pub_month = article.findtext(".//Journal/JournalIssue/PubDate/Month")
-                pub_day = article.findtext(".//Journal/JournalIssue/PubDate/Day")
-            
+
+            # --- 発表日（ArticleDate を厳密に優先） ---
+            pub_year = pub_month = pub_day = None
+
+            # Article階層を厳密に取得
+            article_elem = article.find("Article")
+            if article_elem is not None:
+                # Electronic公開日を優先
+                article_date_elem = article_elem.find("ArticleDate[@DateType='Electronic']")
+                if article_date_elem is not None:
+                    pub_year = article_date_elem.findtext("Year")
+                    pub_month = article_date_elem.findtext("Month")
+                    pub_day = article_date_elem.findtext("Day")
+
+            # フォールバック：JournalIssue の PubDate（階層限定）
+            if pub_year is None:
+                journal_issue_elem = article.find("Article/Journal/JournalIssue/PubDate")
+                if journal_issue_elem is not None:
+                    pub_year = journal_issue_elem.findtext("Year")
+                    pub_month = journal_issue_elem.findtext("Month")
+                    pub_day = journal_issue_elem.findtext("Day")
+
             # 日付の組み立て
             if pub_year:
                 if pub_month and pub_day:

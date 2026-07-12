@@ -9,8 +9,10 @@ jobs:
   summarize:
     runs-on: ubuntu-latest
     steps:
+      #- uses: actions/checkout@v4.1.0
       - uses: actions/checkout@v4.1.0
-      
+        with:
+          fetch-depth: 0   # 🔥 フル履歴を取得（rebase が可能になる）      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

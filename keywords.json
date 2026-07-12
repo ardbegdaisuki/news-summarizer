@@ -1,6 +1,7 @@
 {
   "pubmed": [
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (super resolution) AND (Magnetic Resonance in Medicine[Journal])"
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (super resolution) AND (Magnetic Resonance in Medicine[Journal] OR Physics in Medicine and Biology[Journal] OR Medical Pysics[Journal])",
+     "(deep learning OR machine learning) AND (positron emission tomography) AND (Physics in Medicine and Biology[Journal] OR Medical Pysics[Journal])",
   ],
   "news": [
     "(AI OR Machine Learning) AND (research OR study)",

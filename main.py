@@ -114,8 +114,9 @@ def fetch_pubmed_papers():
         
         # ステップ3: EFetch APIで詳細情報を取得
         fetch_params = {
+            "db": "pubmed",                           # ✅ データベースパラメータを追加
             "id": ",".join(selected_pmids),
-            "rettype": "abstract",
+            "rettype": "medline",                     # ✅ "abstract" から "medline" に変更
             "retmode": "json",
             "tool": "news-summarizer",
             "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")

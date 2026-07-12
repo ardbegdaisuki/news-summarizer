@@ -112,12 +112,12 @@ def fetch_pubmed_papers():
         # ステップ2: 上位SELECT_TOP_N件を選択（既にサーバー側で関連度ソート済み）
         selected_pmids = pmids[:select_top_n]
         
-        # ステップ3: EFetch APIで詳細情報を取得
+        # ステップ3: EFetch APIで詳細情報を取得（XML形式で取得）
         fetch_params = {
-            "db": "pubmed",                           # ✅ データベースパラメータを追加
+            "db": "pubmed",
             "id": ",".join(selected_pmids),
-            "rettype": "medline",                     # ✅ "abstract" から "medline" に変更
-            "retmode": "json",
+            "rettype": "abstract",
+            "retmode": "xml",  # JSON ではなく XML で取得
             "tool": "news-summarizer",
             "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
         }
@@ -129,16 +129,24 @@ def fetch_pubmed_papers():
         fetch_response.raise_for_status()
         
         papers = []
-        data = fetch_response.json()
+        root = ET.fromstring(fetch_response.text)
         
-        for article in data.get("result", {}).get("uids", []):
-            if article != "uids":
-                paper_data = data["result"][article]
+        # XMLから論文情報を抽出
+        for article in root.findall(".//MedlineCitation"):
+            pmid_elem = article.find(".//PMID")
+            title_elem = article.find(".//ArticleTitle")
+            abstract_elem = article.find(".//AbstractText")
+            
+            if pmid_elem is not None:
+                pmid = pmid_elem.text
+                title = title_elem.text if title_elem is not None else "No title"
+                abstract = abstract_elem.text if abstract_elem is not None else "No abstract available"
+                
                 papers.append({
-                    "title": paper_data.get("title", "No title"),
-                    "abstract": paper_data.get("abstract", "No abstract available"),
-                    "pmid": article,
-                    "url": f"https://pubmed.ncbi.nlm.nih.gov/{article}/"
+                    "title": title,
+                    "abstract": abstract,
+                    "pmid": pmid,
+                    "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
                 })
         
         return papers

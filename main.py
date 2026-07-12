@@ -337,7 +337,7 @@ def fetch_arxiv_papers():
         
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
     """翻訳&要約（要約だけを返す。雑誌名/日付は外で使う）"""
-    prompt = f"""以下の原文について、{target_lang}で要約だけを出力してください。雑誌名や発表日は出力しないでください。箇条書きやヘッダは不要[...]
+    prompt = f"""以下の原文について、{target_lang}で課題が何か、その課題をどうやって解決したかをまとめてください。雑誌名や発表日は出力しないでください。箇条書きやヘッダは不要[...]
 
 原文:
 {text}

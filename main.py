@@ -1,5 +1,6 @@
 import os
 import requests
+import xml.etree.ElementTree as ET
 from openai import OpenAI
 import google.generativeai as genai
 from datetime import datetime, timedelta
@@ -60,13 +61,14 @@ def fetch_news():
         raise RuntimeError(f"NewsAPIエラー: {str(e)}")
 
 def fetch_ranked_news():
-    """relevancy_scoreでランキングした記事を取得"""
+    """関連度でソートした記事を取得"""
+    select_top_n = int(os.getenv("SELECT_TOP_N", 5))
     params = {
         "q": os.getenv("SEARCH_KEYWORDS", "(insect OR animal) AND (research OR study)"),
         "from": (datetime.now() - timedelta(hours=24)).strftime("%Y-%m-%d"),
         "language": "en",
-        "sortBy": "relevancy",  # 関連度順でソート
-        "pageSize": int(os.getenv("MAX_ARTICLES", 20)),  # デフォルト20件取得
+        "sortBy": "relevancy",  # サーバー側で関連度順でソート
+        "pageSize": select_top_n,  # 必要な分だけ取得
         "apiKey": os.getenv("NEWS_API_KEY")
     }
 
@@ -75,17 +77,73 @@ def fetch_ranked_news():
         response.raise_for_status()
         articles = response.json().get("articles", [])
         
-        # relevancy_scoreで降順ソート
-        ranked_articles = sorted(
-            articles,
-            key=lambda x: x.get("relevancy_score", 0),
-            reverse=True
-        )[:int(os.getenv("SELECT_TOP_N", 5))]  # デフォルト上位5件
-        
-        return ranked_articles
+        # サーバー側が既にソート済みなので、そのまま返す
+        return articles
 
     except requests.exceptions.RequestException as e:
         raise RuntimeError(f"NewsAPIエラー: {str(e)}")
+
+
+def fetch_pubmed_papers():
+    """PubMedから関連度の高い論文を検索・取得"""
+    select_top_n = int(os.getenv("SELECT_TOP_N", 5))
+    params = {
+        "term": os.getenv("PUBMED_SEARCH_KEYWORDS", "(AI OR Machine Learning) AND (research OR study)"),
+        "retmax": 100,  # 関連度計算用に多めに取得
+        "sort": "relevance",  # PubMed側で関連度順でソート
+        "tool": "news-summarizer",
+        "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
+    }
+    
+    try:
+        # ステップ1: ESearch APIで論文IDを取得
+        search_response = requests.get(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+            params=params
+        )
+        search_response.raise_for_status()
+        
+        root = ET.fromstring(search_response.text)
+        pmids = [pmid.text for pmid in root.findall(".//Id")]
+        
+        if not pmids:
+            return []
+        
+        # ステップ2: 上位SELECT_TOP_N件を選択（既にサーバー側で関連度ソート済み）
+        selected_pmids = pmids[:select_top_n]
+        
+        # ステップ3: EFetch APIで詳細情報を取得
+        fetch_params = {
+            "id": ",".join(selected_pmids),
+            "rettype": "abstract",
+            "retmode": "json",
+            "tool": "news-summarizer",
+            "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
+        }
+        
+        fetch_response = requests.get(
+            "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+            params=fetch_params
+        )
+        fetch_response.raise_for_status()
+        
+        papers = []
+        data = fetch_response.json()
+        
+        for article in data.get("result", {}).get("uids", []):
+            if article != "uids":
+                paper_data = data["result"][article]
+                papers.append({
+                    "title": paper_data.get("title", "No title"),
+                    "abstract": paper_data.get("abstract", "No abstract available"),
+                    "pmid": article,
+                    "url": f"https://pubmed.ncbi.nlm.nih.gov/{article}/"
+                })
+        
+        return papers
+
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"PubMed APIエラー: {str(e)}")
 
 
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
@@ -124,24 +182,48 @@ def send_notification(message: str):
 if __name__ == "__main__":
     try:
         ai_config = init_ai_client()
-        # articles = fetch_news()
-        articles = fetch_ranked_news()
+        target_lang = os.getenv("TARGET_LANGUAGE", "ja")
         
-        if not articles:
-            send_notification("⚠️ 今日の該当記事が見つかりませんでした")
-            exit()
-
+        # ニュースと論文の両方を取得
+        articles = fetch_ranked_news()
+        papers = fetch_pubmed_papers()
+        
+        all_sources = []
+        
+        # ニュース記事を処理
         for article in articles:
             content = f"{article['title']}\n\n{article['description'] or 'No description available'}"
-            summary = translate_and_summarize(
-                ai_config,
-                content,
-                os.getenv("TARGET_LANGUAGE", "ja")
-            )
+            summary = translate_and_summarize(ai_config, content, target_lang)
+            all_sources.append({
+                "type": "news",
+                "summary": summary,
+                "title": article['title'],
+                "url": article['url']
+            })
+        
+        # PubMed論文を処理
+        for paper in papers:
+            content = f"{paper['title']}\n\n{paper['abstract']}"
+            summary = translate_and_summarize(ai_config, content, target_lang)
+            all_sources.append({
+                "type": "paper",
+                "summary": summary,
+                "title": paper['title'],
+                "url": paper['url']
+            })
+        
+        if not all_sources:
+            send_notification("⚠️ 今日の該当記事・論文が見つかりませんでした")
+            exit()
+        
+        # 通知を送信
+        for source in all_sources:
+            source_type = "📄【論文】" if source["type"] == "paper" else "📰【ニュース】"
             send_notification(
-                f"*【翻訳要約】*\n{summary}\n\n"
-                f"*Original Title*: {article['title']}\n"
-                f"*URL*: {article['url']}"
+                f"{source_type}\n"
+                f"*翻訳要約*\n{source['summary']}\n\n"
+                f"*Title*: {source['title']}\n"
+                f"*URL*: {source['url']}"
             )
             
     except Exception as e:

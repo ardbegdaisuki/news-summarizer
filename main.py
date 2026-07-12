@@ -323,6 +323,7 @@ def fetch_pubmed_papers():
 
                     # --- 🔥 新規論文として追加 ---
                     if pmid_elem is not None:
+                        print(f"[DEBUG] PubMed 新規論文追加: PMID={pmid}, pub_date={pub_date}, keyword={selected_keyword}")
                         all_papers.append({
                             "title": "".join(title_elem.itertext()).strip() if title_elem is not None else "No title",
                             "abstract": abstract,

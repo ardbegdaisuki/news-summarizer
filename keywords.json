@@ -1,0 +1,13 @@
+{
+  "pubmed": [
+
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (reconstruction OR image reconstruction) AND (Magnetic Resonance in Medicine[Journal])",
+    #"Neural Network",
+    #"Natural Language Processing",
+    #"新しいキーワード"  // ← ここに追加
+  ],
+  "news": [
+    "(AI OR Machine Learning) AND (research OR study)",
+    "(healthcare OR medical) AND (AI OR deep learning)"  // ← 複数指定も可能
+  ]
+}

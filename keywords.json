@@ -13,7 +13,7 @@
   "arxiv": [
     "cat:cs.CV OR ti:\"super resolution\"",
     "all:\"deep learning\" AND all:\"magnetic resonance\""
-  ] 
+  ], 
   "news": [
     "(AI OR Machine Learning) AND (research OR study)",
     "(healthcare OR medical) AND (AI OR deep learning)"

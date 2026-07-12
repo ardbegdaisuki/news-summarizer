@@ -48,3 +48,15 @@ jobs:
           TARGET_LANGUAGE: ${{ secrets.TARGET_LANGUAGE || 'ja' }}
           
         run: python main.py
+      - name: Save seen_papers.json to repository
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+      
+          # 変更がある場合のみコミット
+          if [ -f seen_papers.json ]; then
+            git add seen_papers.json
+            git commit -m "Update seen_papers.json [auto]" || echo "No changes to commit"
+            git push
+          fi
+

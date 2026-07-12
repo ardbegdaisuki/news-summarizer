@@ -11,9 +11,9 @@
     "(deep learning OR machine learning) AND (image reconstruction) AND (@radiology)"
   ],
   "arxiv": [
-    "cat:cs.CV+OR+ti:"super resolution"",
-    "all:"deep learning"+AND+"magnetic resonance""
-  ]  
+    "cat:cs.CV OR ti:\"super resolution\"",
+    "all:\"deep learning\" AND all:\"magnetic resonance\""
+  ] 
   "news": [
     "(AI OR Machine Learning) AND (research OR study)",
     "(healthcare OR medical) AND (AI OR deep learning)"

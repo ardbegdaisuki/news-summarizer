@@ -148,15 +148,16 @@ def fetch_ranked_news():
 
 
 def fetch_pubmed_papers():
-    """PubMedから複数の検索ワードで論文を取得・取得"""
+    """PubMedから複数の検索ワードで論文を取得"""
     keywords = load_keywords()
     pubmed_keywords = keywords.get("pubmed", ["(AI OR Machine Learning) AND (research OR study)"])
     
     select_top_n = int(os.getenv("SELECT_TOP_N", 5))
     all_papers = []
-    
-    # 各検索ワードをループ処理
+
     for selected_keyword in pubmed_keywords:
+
+        # --- Step 1: ESearch ---
         params = {
             "term": selected_keyword,
             "retmax": 100,
@@ -164,115 +165,94 @@ def fetch_pubmed_papers():
             "tool": "news-summarizer",
             "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
         }
-        
+
         try:
-            # ステップ1: ESearch APIで論文IDを取得
+            time.sleep(0.34)  # PubMed レート制限回避
             search_response = requests.get(
                 "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
                 params=params
             )
             search_response.raise_for_status()
-            
+
             root = ET.fromstring(search_response.text)
             pmids = [pmid.text for pmid in root.findall(".//Id")]
-            
+
             if not pmids:
                 continue
-            
-            # ステップ2: 上位SELECT_TOP_N件を選択
-            selected_pmids = pmids[:select_top_n]
-            
-            # ステップ3: EFetch APIで詳細情報を取得
-            fetch_params = {
-                "db": "pubmed",
-                "id": ",".join(selected_pmids),
-                "rettype": "abstract",
-                "retmode": "xml",
-                "tool": "news-summarizer",
-                "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
-            }
-            
-            fetch_response = requests.get(
-                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
-                params=fetch_params
-            )
-            fetch_response.raise_for_status()
-            
-            root = ET.fromstring(fetch_response.text)
-            
-            # XMLから論文情報を抽出
-            for pubmed_article in root.findall(".//PubmedArticle"):
-                article = pubmed_article.find("MedlineCitation")
-                if article is None:
-                    continue
-            
-                pmid_elem = article.find(".//PMID")
-                title_elem = article.find(".//ArticleTitle")
 
-                # Abstract処理
-                abstract_texts = []
-                for abstract_part in article.findall(".//Abstract/AbstractText"):
-                    if abstract_part is None:
+            selected_pmids = pmids[:select_top_n]
+
+            # --- Step 2: EFetch（PMIDを1件ずつ取得） ---
+            for pmid in selected_pmids:
+                fetch_params = {
+                    "db": "pubmed",
+                    "id": pmid,
+                    "rettype": "abstract",
+                    "retmode": "xml",
+                    "tool": "news-summarizer",
+                    "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
+                }
+
+                time.sleep(0.34)  # PubMed レート制限回避
+                fetch_response = requests.get(
+                    "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+                    params=fetch_params
+                )
+                fetch_response.raise_for_status()
+
+                root = ET.fromstring(fetch_response.text)
+
+                for pubmed_article in root.findall(".//PubmedArticle"):
+                    article = pubmed_article.find("MedlineCitation")
+                    if article is None:
                         continue
-                    text = "".join(abstract_part.itertext()).strip() if hasattr(abstract_part, "itertext") else (abstract_part.text or "").strip()
-                    label = abstract_part.get("Label")
-                    if label:
-                        abstract_texts.append(f"{label}: {text}")
-                    else:
-                        abstract_texts.append(text)
-                abstract = "\n".join([t for t in abstract_texts if t]) if abstract_texts else "No abstract available"
-                
-                # Journal名
-                journal_elem = article.find(".//Journal/Title")
-                journal = journal_elem.text if journal_elem is not None else "No journal"
-                
-                # 発表日の取得
-                pub_year = pub_month = pub_day = None
-                article_elem = article.find("Article")
-                if article_elem is not None:
-                    article_date_elem = article_elem.find("ArticleDate[@DateType='Electronic']")
-                    if article_date_elem is not None:
-                        pub_year = article_date_elem.findtext("Year")
-                        pub_month = article_date_elem.findtext("Month")
-                        pub_day = article_date_elem.findtext("Day")
-                if pub_year is None:
-                    journal_issue_elem = article.find("Article/Journal/JournalIssue/PubDate")
-                    if journal_issue_elem is not None:
-                        pub_year = journal_issue_elem.findtext("Year")
-                        pub_month = journal_issue_elem.findtext("Month")
-                        pub_day = journal_issue_elem.findtext("Day")
-                        if pub_year is None:
-                            medline = journal_issue_elem.findtext("MedlineDate")
-                            if medline:
-                                pub_date = medline
-                            else:
-                                pub_date = "No date"
-                if pub_year:
-                    if pub_month and pub_day:
-                        pub_date = f"{pub_year}-{pub_month}-{pub_day}"
-                    elif pub_month:
-                        pub_date = f"{pub_year}-{pub_month}"
-                    else:
-                        pub_date = pub_year
-                
-                # 論文情報をall_papersに追加
-                if pmid_elem is not None:
-                    pmid = pmid_elem.text
-                    title = "".join(title_elem.itertext()).strip() if (title_elem is not None and hasattr(title_elem, "itertext")) else (title_elem.text if title_elem is not None else "No title")
-                    all_papers.append({
-                        "title": title,
-                        "abstract": abstract,
-                        "pmid": pmid,
-                        "journal": journal,
-                        "pub_date": pub_date,
-                        "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
-                        "search_keyword": selected_keyword  # 検索ワードを記録
-                    })
+
+                    pmid_elem = article.find(".//PMID")
+                    title_elem = article.find(".//ArticleTitle")
+
+                    # Abstract
+                    abstract_texts = []
+                    for abstract_part in article.findall(".//Abstract/AbstractText"):
+                        text = "".join(abstract_part.itertext()).strip()
+                        label = abstract_part.get("Label")
+                        if label:
+                            abstract_texts.append(f"{label}: {text}")
+                        else:
+                            abstract_texts.append(text)
+                    abstract = "\n".join(abstract_texts) if abstract_texts else "No abstract available"
+
+                    # Journal
+                    journal_elem = article.find(".//Journal/Title")
+                    journal = journal_elem.text if journal_elem is not None else "No journal"
+
+                    # Date
+                    pub_date = "No date"
+                    article_elem = article.find("Article")
+                    if article_elem is not None:
+                        article_date_elem = article_elem.find("ArticleDate[@DateType='Electronic']")
+                        if article_date_elem is not None:
+                            year = article_date_elem.findtext("Year")
+                            month = article_date_elem.findtext("Month")
+                            day = article_date_elem.findtext("Day")
+                            if year:
+                                pub_date = f"{year}-{month or ''}-{day or ''}".strip("-")
+
+                    # Add paper
+                    if pmid_elem is not None:
+                        all_papers.append({
+                            "title": "".join(title_elem.itertext()).strip() if title_elem is not None else "No title",
+                            "abstract": abstract,
+                            "pmid": pmid,
+                            "journal": journal,
+                            "pub_date": pub_date,
+                            "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+                            "search_keyword": selected_keyword
+                        })
 
         except requests.exceptions.RequestException as e:
             print(f"PubMed APIエラー (キーワード: {selected_keyword}): {str(e)}")
             continue
-    
+
     return all_papers
 
 def fetch_arxiv_papers():
@@ -281,12 +261,16 @@ def fetch_arxiv_papers():
     arxiv_queries = keywords.get("arxiv", [])
     if not arxiv_queries:
         arxiv_queries = [os.getenv("ARXIV_QUERY", "all:machine+learning")]
-    
+
     select_top_n = int(os.getenv("SELECT_TOP_N", 5))
     all_papers = []
-    
-    # 各検索ワードをループ処理
+    seen_urls = set()  # 重複除去用
+
     for query in arxiv_queries:
+
+        # arXiv API レート制限対策
+        time.sleep(0.3)
+
         base_url = "https://export.arxiv.org/api/query"
         params = {
             "search_query": query,
@@ -299,35 +283,41 @@ def fetch_arxiv_papers():
         try:
             resp = requests.get(base_url, params=params, timeout=15)
             resp.raise_for_status()
-            
-            root = ET.fromstring(resp.text)
+
+            try:
+                root = ET.fromstring(resp.text)
+            except ET.ParseError:
+                print(f"arXiv XML解析エラー → 再試行します (クエリ: {query})")
+                time.sleep(1)
+                resp = requests.get(base_url, params=params, timeout=15)
+                root = ET.fromstring(resp.text)
+
             ns = {"atom": "http://www.w3.org/2005/Atom"}
-            
+
             for entry in root.findall("atom:entry", ns):
                 title_elem = entry.find("atom:title", ns)
                 summary_elem = entry.find("atom:summary", ns)
                 published_elem = entry.find("atom:published", ns)
                 id_elem = entry.find("atom:id", ns)
-                
+
                 # authors
                 authors = []
                 for a in entry.findall("atom:author", ns):
                     name = a.findtext("atom:name", default=None, namespaces=ns)
                     if name:
                         authors.append(name.strip())
-                
+
                 title = "".join(title_elem.itertext()).strip() if title_elem is not None else "No title"
                 abstract = "".join(summary_elem.itertext()).strip() if summary_elem is not None else "No abstract available"
-                
-                pub_date = None
+
+                pub_date = "No date"
                 if published_elem is not None and published_elem.text:
                     try:
                         pub_date = published_elem.text.split("T")[0]
                     except Exception:
                         pub_date = published_elem.text
-                else:
-                    pub_date = "No date"
-                
+
+                # URL（ID）
                 link = None
                 if id_elem is not None and id_elem.text:
                     link = id_elem.text.strip()
@@ -336,23 +326,30 @@ def fetch_arxiv_papers():
                         if l.get("rel") == "alternate" and l.get("href"):
                             link = l.get("href")
                             break
-                
+
+                url = link or "https://arxiv.org"
+
+                # 重複除去
+                if url in seen_urls:
+                    continue
+                seen_urls.add(url)
+
                 all_papers.append({
                     "title": title,
                     "abstract": abstract,
                     "authors": authors,
                     "pub_date": pub_date,
-                    "url": link or "https://arxiv.org",
-                    "search_keyword": query  # 検索ワードを記録
+                    "url": url,
+                    "search_keyword": query
                 })
 
         except requests.exceptions.RequestException as e:
             print(f"arXiv APIエラー (クエリ: {query}): {str(e)}")
             continue
         except ET.ParseError as e:
-            print(f"arXiv レスポンスの XML 解析エラー (クエリ: {query}): {str(e)}")
+            print(f"arXiv XML解析エラー (クエリ: {query}): {str(e)}")
             continue
-    
+
     return all_papers
         
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:

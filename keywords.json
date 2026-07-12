@@ -1,7 +1,14 @@
 {
+  "journals": {
+    "medical_imaging": "Magnetic Resonance in Medicine[Journal] OR Physics in Medicine and Biology[Journal] OR IEEE Transactions on Medical Imaging[Journal]",
+    "medical_physics": "Physics in Medicine and Biology[Journal] OR Medical Physics[Journal] OR Journal of Applied Clinical Medical Physics[Journal]",
+    "radiology": "Radiology[Journal] OR AJR American Journal of Roentgenology[Journal] OR European Radiology[Journal]",
+    "general_medical": "Nature Medicine[Journal] OR Lancet[Journal] OR JAMA[Journal] OR BMJ[Journal]"
+  },
   "pubmed": [
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (super resolution) AND (Magnetic Resonance in Medicine[Journal] OR Physics in Medicine and Biology[Journal])",
-    "(deep learning OR machine learning) AND (positron emission tomography) AND (Physics in Medicine and Biology[Journal] OR Medical Physics[Journal])"
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (super resolution) AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (positron emission tomography) AND (@medical_physics)",
+    "(deep learning OR machine learning) AND (image reconstruction) AND (@radiology)"
   ],
   "news": [
     "(AI OR Machine Learning) AND (research OR study)",

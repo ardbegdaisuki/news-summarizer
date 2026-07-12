@@ -62,29 +62,48 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
           
-          git checkout -B main
-          git fetch origin main
-          
-          if [ -f seen_papers.json ]; then
-            git add seen_papers.json
-            git commit -m "Update seen_papers.json [auto]" || echo "No changes to commit"
-            
-            # リトライロジック：最大5回まで試行
-            MAX_ATTEMPTS=5
-            for i in $(seq 1 $MAX_ATTEMPTS); do
-              echo "Attempt $i of $MAX_ATTEMPTS"
-              git fetch origin main
-              git rebase origin/main && git push origin main && break
-              
-              if [ $i -eq $MAX_ATTEMPTS ]; then
-                echo "Failed to push after $MAX_ATTEMPTS attempts"
-                exit 1
-              fi
-              
-              echo "Retrying in 2 seconds..."
-              sleep 2
-            done
+          if [ ! -f seen_papers.json ]; then
+            echo "seen_papers.json not found, skipping commit"
+            exit 0
           fi
+          
+          # ローカルの変更を一時保存
+          git stash
+          
+          # リモートの最新状態を取得
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+          
+          # 変更を復元
+          git stash pop || git stash drop
+          
+          # 変更がある場合のみコミット・プッシュ
+          if git diff --quiet; then
+            echo "No changes to seen_papers.json"
+            exit 0
+          fi
+          
+          git add seen_papers.json
+          git commit -m "Update seen_papers.json [auto]"
+          
+          # リトライロジック
+          for attempt in {1..5}; do
+            echo "Push attempt $attempt/5"
+            git fetch origin main
+            git rebase origin/main
+            if git push origin main; then
+              echo "Successfully pushed"
+              exit 0
+            fi
+            
+            if [ $attempt -lt 5 ]; then
+              sleep $((attempt * 2))
+            fi
+          done
+          
+          echo "Failed to push after 5 attempts"
+          exit 1
 
 
 

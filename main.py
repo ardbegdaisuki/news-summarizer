@@ -205,6 +205,7 @@ def fetch_ranked_news():
 def fetch_pubmed_papers():
     print("[DEBUG] 現在の作業ディレクトリ:", os.getcwd())
     print("[DEBUG] seen_papers.json の保存先:", os.path.abspath(SEEN_FILE))
+
     """PubMedから複数キーワードで論文を取得し、重複を除外し、最後に最新5件だけ返す"""
     keywords = load_keywords()
     pubmed_keywords = keywords.get("pubmed", ["(AI OR Machine Learning) AND (research OR study)"])
@@ -324,7 +325,7 @@ def fetch_pubmed_papers():
                         if medline:
                             pub_date = medline
 
-                    # --- 🔥 新規論文として追加 ---
+                    # --- 🔥 新規論文として追加（保存はここではしない） ---
                     if pmid_elem is not None:
                         print(f"[DEBUG] PubMed 新規論文追加: PMID={pmid}, pub_date={pub_date}, keyword={selected_keyword}")
                         all_papers.append({
@@ -337,18 +338,22 @@ def fetch_pubmed_papers():
                             "search_keyword": selected_keyword
                         })
 
-                        # 🔥 新規論文IDを保存
-                        seen_pubmed.add(pmid)
-                        seen["pubmed"] = list(seen_pubmed)
-                        save_seen_papers(seen)
-
         except Exception as e:
             print(f"PubMed APIエラー (キーワード: {selected_keyword}): {str(e)}")
             continue
 
-    # --- 🔥 最後に最新5件だけ返す ---
-    all_papers_sorted = sorted(all_papers, key=lambda x: normalize_pub_date(x["pub_date"]), reverse=True)
-    return all_papers_sorted[:5]
+    # --- 🔥 最新5件だけ抽出 ---
+    final_papers = sorted(all_papers, key=lambda x: normalize_pub_date(x["pub_date"]), reverse=True)[:5]
+
+    # --- 🔥 最新5件だけ保存 ---
+    for p in final_papers:
+        seen_pubmed.add(p["pmid"])
+
+    seen["pubmed"] = list(seen_pubmed)
+    save_seen_papers(seen)
+
+    return final_papers
+
     
 def fetch_arxiv_papers():
     """arXivから複数キーワードで論文を取得し、重複を除外し、最後に最新5件だけ返す"""
@@ -415,7 +420,7 @@ def fetch_arxiv_papers():
                 if url in seen_arxiv:
                     continue
 
-                # 🔥 新規論文として追加
+                # 🔥 新規論文として追加（保存はここではしない）
                 all_papers.append({
                     "title": title,
                     "abstract": abstract,
@@ -425,18 +430,22 @@ def fetch_arxiv_papers():
                     "search_keyword": query
                 })
 
-                # 🔥 新規論文IDを保存
-                seen_arxiv.add(url)
-                seen["arxiv"] = list(seen_arxiv)
-                save_seen_papers(seen)
-
         except Exception as e:
             print(f"arXiv APIエラー (クエリ: {query}): {str(e)}")
             continue
 
-    # --- 🔥 最後に最新5件だけ返す ---
-    all_papers_sorted = sorted(all_papers, key=lambda x: x["pub_date"], reverse=True)
-    return all_papers_sorted[:5]
+    # --- 🔥 最新5件だけ抽出 ---
+    final_papers = sorted(all_papers, key=lambda x: x["pub_date"], reverse=True)[:5]
+
+    # --- 🔥 最新5件だけ保存 ---
+    for p in final_papers:
+        seen_arxiv.add(p["url"])
+
+    seen["arxiv"] = list(seen_arxiv)
+    save_seen_papers(seen)
+
+    return final_papers
+
         
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
     """翻訳&要約（要約だけを返す。雑誌名/日付は外で使う）"""

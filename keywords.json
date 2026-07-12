@@ -11,7 +11,7 @@
     "(deep learning OR machine learning) AND (image reconstruction) AND (@radiology)"
   ],
   "arxiv": [
-    "cs.CV AND (deep learning OR neural network OR diffusion model) AND (denoising OR noise reduction OR noise suppression OR image restoration) NOT (video OR videos OR motion OR action OR \"video denoising\" OR \"video restoration\" OR \"video super resolution\")"
+    "cs.CV AND \"image restoration\""
   ],
   "news": [
     "(AI OR Machine Learning) AND (research OR study)",

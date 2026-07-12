@@ -249,7 +249,81 @@ def fetch_pubmed_papers():
     except requests.exceptions.RequestException as e:
         raise RuntimeError(f"PubMed APIエラー: {str(e)}")
 
+def fetch_arxiv_papers():
+    """arXiv から論文を取得してパースする"""
+    # 優先順: keywords.json の arxiv -> 環境変数 ARXIV_QUERY -> デフォルトクエリ
+    keywords = load_keywords()
+    arxiv_queries = keywords.get("arxiv") if keywords else None
+    query = None
+    if arxiv_queries:
+        query = arxiv_queries[0]
+    else:
+        query = os.getenv("ARXIV_QUERY", "all:machine+learning")  # デフォルト簡易クエリ
 
+    # arXiv API パラメータ
+    select_top_n = int(os.getenv("SELECT_TOP_N", 5))
+    base_url = "https://export.arxiv.org/api/query"
+    params = {
+        "search_query": query,
+        "start": 0,
+        "max_results": select_top_n,
+        "sortBy": "submittedDate",
+        "sortOrder": "descending"
+    }
+
+    try:
+        resp = requests.get(base_url, params=params, timeout=15)
+        resp.raise_for_status()
+        # Atom XML をパース（名前空間に注意）
+        root = ET.fromstring(resp.text)
+        ns = {"atom": "http://www.w3.org/2005/Atom"}
+        papers = []
+        for entry in root.findall("atom:entry", ns):
+            title_elem = entry.find("atom:title", ns)
+            summary_elem = entry.find("atom:summary", ns)
+            published_elem = entry.find("atom:published", ns)
+            id_elem = entry.find("atom:id", ns)
+            # authors
+            authors = []
+            for a in entry.findall("atom:author", ns):
+                name = a.findtext("atom:name", default=None, namespaces=ns)
+                if name:
+                    authors.append(name.strip())
+            title = "".join(title_elem.itertext()).strip() if title_elem is not None else "No title"
+            # summary は改行や HTML 風のタグが混ざることがある -> itertext で結合
+            abstract = "".join(summary_elem.itertext()).strip() if summary_elem is not None else "No abstract available"
+            pub_date = None
+            if published_elem is not None and published_elem.text:
+                # ISO 8601 形式 (例: 2023-07-10T12:34:56Z) -> YYYY-MM-DD
+                try:
+                    pub_date = published_elem.text.split("T")[0]
+                except Exception:
+                    pub_date = published_elem.text
+            else:
+                pub_date = "No date"
+            link = None
+            # id_elem は通常記事の URL を含むが、entry 内の link rel="alternate" も確認する
+            if id_elem is not None and id_elem.text:
+                link = id_elem.text.strip()
+            else:
+                for l in entry.findall("atom:link", ns):
+                    if l.get("rel") == "alternate" and l.get("href"):
+                        link = l.get("href")
+                        break
+            papers.append({
+                "title": title,
+                "abstract": abstract,
+                "authors": authors,
+                "pub_date": pub_date,
+                "url": link or "https://arxiv.org",
+            })
+        return papers
+
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"arXiv API エラー: {str(e)}")
+    except ET.ParseError as e:
+        raise RuntimeError(f"arXiv レスポンスの XML 解析エラー: {str(e)}")
+        
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
     """翻訳&要約（要約だけを返す。雑誌名/日付は外で使う）"""
     prompt = f"""以下の原文について、{target_lang}で要約だけを出力してください。雑誌名や発表日は出力しないでください。箇条書きやヘッダは不要です。
@@ -316,7 +390,21 @@ if __name__ == "__main__":
                 "journal": paper.get("journal", "No journal"),
                 "pub_date": paper.get("pub_date", "No date")
             })
-        
+            
+         # arXiv を同様に処理
+        for a in arxiv_papers:
+            content = f"{a['title']}\n\n{a['abstract']}"
+            summary = translate_and_summarize(ai_config, content, target_lang)
+            all_sources.append({
+                "type": "paper",
+                "source": "arxiv",
+                "summary": summary,
+                "title": a['title'],
+                "url": a['url'],
+                "authors": ", ".join(a.get("authors", [])) or "No authors",
+                "pub_date": a.get("pub_date", "No date")
+            })       
+            
         # 通知送信（例）
         for source in all_sources:
             if source["type"] == "paper":

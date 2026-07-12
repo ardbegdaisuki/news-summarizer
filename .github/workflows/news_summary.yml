@@ -61,49 +61,17 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          
-          if [ ! -f seen_papers.json ]; then
-            echo "seen_papers.json not found, skipping commit"
-            exit 0
-          fi
-          
-          # ローカルの変更を一時保存
-          git stash
-          
-          # リモートの最新状態を取得
+      
           git fetch origin main
-          git checkout main
-          git reset --hard origin/main
-          
-          # 変更を復元
-          git stash pop || git stash drop
-          
-          # 変更がある場合のみコミット・プッシュ
-          if git diff --quiet; then
-            echo "No changes to seen_papers.json"
-            exit 0
+          git checkout -B main origin/main
+      
+          if [ -f seen_papers.json ]; then
+            git add seen_papers.json
+            git commit -m "Update seen_papers.json [auto]" || echo "No changes to commit"
+      
+            # 🔥 fast-forward できなくても必ず push する
+            git push origin main --force
           fi
-          
-          git add seen_papers.json
-          git commit -m "Update seen_papers.json [auto]"
-          
-          # リトライロジック
-          for attempt in {1..5}; do
-            echo "Push attempt $attempt/5"
-            git fetch origin main
-            git rebase origin/main
-            if git push origin main; then
-              echo "Successfully pushed"
-              exit 0
-            fi
-            
-            if [ $attempt -lt 5 ]; then
-              sleep $((attempt * 2))
-            fi
-          done
-          
-          echo "Failed to push after 5 attempts"
-          exit 1
 
 
 

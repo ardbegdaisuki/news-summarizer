@@ -12,7 +12,7 @@
   ],
   "arxiv": [
     "(deep learning OR neural network OR diffusion model) AND (denoising OR noise reduction OR noise suppression OR image restoration) NOT (video OR videos OR motion OR action OR \"video denoising\" OR \"video restoration\" OR \"video super resolution\")"
-  ]
+  ],
   "news": [
     "(AI OR Machine Learning) AND (research OR study)",
     "(healthcare OR medical) AND (AI OR deep learning)"

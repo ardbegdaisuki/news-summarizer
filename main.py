@@ -191,15 +191,15 @@ if __name__ == "__main__":
         all_sources = []
         
         # ニュース記事を処理
-        for article in articles:
-            content = f"{article['title']}\n\n{article['description'] or 'No description available'}"
-            summary = translate_and_summarize(ai_config, content, target_lang)
-            all_sources.append({
-                "type": "news",
-                "summary": summary,
-                "title": article['title'],
-                "url": article['url']
-            })
+        #for article in articles:
+        #    content = f"{article['title']}\n\n{article['description'] or 'No description available'}"
+        #    summary = translate_and_summarize(ai_config, content, target_lang)
+        #    all_sources.append({
+        #        "type": "news",
+        #        "summary": summary,
+        #        "title": article['title'],
+        #        "url": article['url']
+        #    })
         
         # PubMed論文を処理
         for paper in papers:

@@ -9,16 +9,46 @@ import json
 
 # 環境変数読み込み
 # load_dotenv()
+
 def load_keywords():
-    """keywords.jsonから検索ワードを読み込む"""
+    """keywords.jsonから検索ワードを読み込み、変数を展開"""
     try:
         with open('keywords.json', 'r') as f:
-            return json.load(f)
+            data = json.load(f)
+        
+        # journalsの変数をpubmedの検索ワードに展開
+        journals = data.get("journals", {})
+        pubmed_keywords = data.get("pubmed", [])
+        news_keywords = data.get("news", [])
+        
+        # PubMed検索ワードの変数展開
+        expanded_pubmed = []
+        for keyword in pubmed_keywords:
+            expanded = keyword
+            for journal_key, journal_value in journals.items():
+                expanded = expanded.replace(f"@{journal_key}", journal_value)
+            expanded_pubmed.append(expanded)
+        
+        # News検索ワードの変数展開
+        expanded_news = []
+        for keyword in news_keywords:
+            expanded = keyword
+            for journal_key, journal_value in journals.items():
+                expanded = expanded.replace(f"@{journal_key}", journal_value)
+            expanded_news.append(expanded)
+        
+        return {
+            "journals": journals,
+            "pubmed": expanded_pubmed,
+            "news": expanded_news
+        }
     except FileNotFoundError:
         return {
+            "journals": {},
             "pubmed": ["(AI OR Machine Learning) AND (research OR study)"],
             "news": ["(AI OR Machine Learning) AND (research OR study)"]
         }
+
 def get_model_name(provider: str) -> str:
     """Secretで指定されたモデル名を取得（デフォルト値付き）"""
     return {
@@ -96,19 +126,16 @@ def fetch_ranked_news():
 
 def fetch_pubmed_papers():
     """PubMedから関連度の高い論文を検索・取得"""
-
     keywords = load_keywords()
     pubmed_keywords = keywords.get("pubmed", ["(AI OR Machine Learning) AND (research OR study)"])
-    selected_keyword = pubmed_keywords[0]  # 複数の場合は選択またはループ
+    selected_keyword = pubmed_keywords[0]
     
-
     select_top_n = int(os.getenv("SELECT_TOP_N", 5))
     params = {
-        #"term": os.getenv("PUBMED_SEARCH_KEYWORDS", "(AI OR Machine Learning) AND (research OR study)"),
-        "term": selected_keyword, #← ここでJSONから読み込んだワードを使用
-        "retmax": 100,  # 関連度計算用に多めに取得
-        "sort":"pub_date", #"relevance",  # PubMed側で関連度順でソート
-        "tool":"news-summarizer",
+        "term": selected_keyword,
+        "retmax": 100,
+        "sort": "pub_date",
+        "tool": "news-summarizer",
         "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
     }
     
@@ -134,7 +161,7 @@ def fetch_pubmed_papers():
             "db": "pubmed",
             "id": ",".join(selected_pmids),
             "rettype": "abstract",
-            "retmode": "xml",  # JSON ではなく XML で取得
+            "retmode": "xml",
             "tool": "news-summarizer",
             "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
         }
@@ -175,7 +202,7 @@ def fetch_pubmed_papers():
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
     """翻訳&要約（モデル選択対応版）"""
     prompt = f"""
-    以下のテキストについて、{target_lang}の要約文、雑誌名、発表日のみを生成してください。他の解説・注意事項・装飾は一切不要です。
+    以下のテキストについて、{target_lang}の要約文のみを生成してください。他の解説・注意事項・装飾は一切不要です。
 
     原文:
     {text}
@@ -199,9 +226,9 @@ def send_notification(message: str):
         raise ValueError("通知先Webhookが設定されていません")
     
     payload = {
-        "text": message  # Slack
+        "text": message
     } if "slack" in webhook_url.lower() else {
-        "content": message  # Discord
+        "content": message
     }
     requests.post(webhook_url, json=payload)
 

@@ -58,11 +58,16 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
       
-          # 🔥 リモートの main を強制的にローカルへ同期（最重要）
+          # 🔥 checkout は detached HEAD なので main ブランチを作成する
+          git checkout -B main
+      
+          # 🔥 リモートの main を取得
           git fetch origin main
+      
+          # 🔥 ローカル main をリモートと完全同期
           git reset --hard origin/main
       
-          # 🔥 最新の main を取得（fast-forward）
+          # 🔥 fast-forward rebase（失敗しても OK）
           git pull --rebase || true
       
           if [ -f seen_papers.json ]; then

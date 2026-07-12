@@ -427,17 +427,7 @@ if __name__ == "__main__":
                 "keyword": a.get("search_keyword")
             })
         
-        # ニュース記事
-        for article in articles:
-            content = f"{article['title']}\n\n{article['description'] or 'No description available'}"
-            summary = translate_and_summarize(ai_config, content, target_lang)
-            all_sources.append({
-                "type": "news",
-                "summary": summary,
-                "title": article['title'],
-                "url": article['url'],
-                "keyword": article.get("search_keyword")
-            })
+
         
         # 通知送信
         for source in all_sources:

@@ -58,6 +58,10 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
       
+          # 🔥 main ブランチを origin/main と同期（これが必須）
+          git branch --set-upstream-to=origin/main main
+      
+          # 🔥 最新の main を取得
           git pull --rebase
       
           if [ -f seen_papers.json ]; then

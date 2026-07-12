@@ -7,12 +7,12 @@
   },
   "pubmed": [
     "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND \"image restoration\" AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (image denoising) AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (denoising) AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (noise reduction) AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (super resolution) AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (deblurring) AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (image enhancement) AND (@medical_imaging)"
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND \"image denoising\" AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND denoising AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND \"noise reduction\" AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND \"super resolution\" AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND deblurring AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND \"image enhancement\" AND (@medical_imaging)"
   ],
   "arxiv": [
     "cs.CV AND \"image restoration\"",

@@ -180,7 +180,26 @@ def fetch_pubmed_papers():
             pmid_elem = article.find(".//PMID")
             title_elem = article.find(".//ArticleTitle")
             abstract_elem = article.find(".//AbstractText")
-            
+            # --- 追加：Journal名 ---
+            journal_elem = article.find(".//Journal/Title")
+            journal = journal_elem.text if journal_elem is not None else "No journal"
+        
+            # --- 追加：発表日（PubDate） ---
+            pub_year = article.findtext(".//PubDate/Year")
+            pub_month = article.findtext(".//PubDate/Month")
+            pub_day = article.findtext(".//PubDate/Day")
+        
+            # 日付が欠けている場合のフォールバック
+            if pub_year:
+                if pub_month and pub_day:
+                    pub_date = f"{pub_year}-{pub_month}-{pub_day}"
+                elif pub_month:
+                    pub_date = f"{pub_year}-{pub_month}"
+                else:
+                    pub_date = pub_year
+            else:
+                pub_date = "No date"
+        
             if pmid_elem is not None:
                 pmid = pmid_elem.text
                 title = title_elem.text if title_elem is not None else "No title"
@@ -190,6 +209,8 @@ def fetch_pubmed_papers():
                     "title": title,
                     "abstract": abstract,
                     "pmid": pmid,
+                    "journal": journal,        # ← 追加
+                    "pub_date": pub_date,      # ← 追加                    
                     "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
                 })
         
@@ -202,7 +223,7 @@ def fetch_pubmed_papers():
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
     """翻訳&要約（モデル選択対応版）"""
     prompt = f"""
-    以下のテキストについて、{target_lang}の要約文のみを生成してください。他の解説・注意事項・装飾は一切不要です。
+    以下のテキストについて、{target_lang}の要約文、雑誌名、発表日のみを生成してください。他の解説・注意事項・装飾は一切不要です。
 
     原文:
     {text}

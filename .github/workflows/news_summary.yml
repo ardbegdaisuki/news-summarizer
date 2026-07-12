@@ -26,6 +26,10 @@ jobs:
           SELECT_TOP_N: ${{ secrets.SELECT_TOP_N || 5 }}  # デフォルト5件
           MAX_ARTICLES: ${{ secrets.MAX_ARTICLES || 20 }} # デフォルト20件
           SEARCH_KEYWORDS: ${{ secrets.SEARCH_KEYWORDS }}
+       
+          # PubMed設定
+          PUBMED_EMAIL: ${{ secrets.PUBMED_EMAIL }}
+          PUBMED_SEARCH_KEYWORDS: ${{ secrets.PUBMED_SEARCH_KEYWORDS }}
           
           # 通知先設定
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

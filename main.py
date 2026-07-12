@@ -217,7 +217,10 @@ def fetch_pubmed_papers():
                     journal = journal_elem.text if journal_elem is not None else "No journal"
 
                     # Date
+                    # --- 発表日の取得 ---
                     pub_date = "No date"
+                    
+                    # ① ArticleDate（Electronic）
                     article_elem = article.find("Article")
                     if article_elem is not None:
                         article_date_elem = article_elem.find("ArticleDate[@DateType='Electronic']")
@@ -227,6 +230,29 @@ def fetch_pubmed_papers():
                             day = article_date_elem.findtext("Day")
                             if year:
                                 pub_date = f"{year}-{month or ''}-{day or ''}".strip("-")
+                    
+                    # ② JournalIssue → PubDate
+                    if pub_date == "No date":
+                        journal_issue_elem = article.find("Article/Journal/JournalIssue/PubDate")
+                        if journal_issue_elem is not None:
+                            year = journal_issue_elem.findtext("Year")
+                            month = journal_issue_elem.findtext("Month")
+                            day = journal_issue_elem.findtext("Day")
+                    
+                            if year:
+                                if month and day:
+                                    pub_date = f"{year}-{month}-{day}"
+                                elif month:
+                                    pub_date = f"{year}-{month}"
+                                else:
+                                    pub_date = year
+                    
+                    # ③ MedlineDate（古い論文）
+                    if pub_date == "No date":
+                        medline = journal_issue_elem.findtext("MedlineDate") if journal_issue_elem is not None else None
+                        if medline:
+                            pub_date = medline
+
 
                     # Add
                     if pmid_elem is not None:

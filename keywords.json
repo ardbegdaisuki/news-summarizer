@@ -11,9 +11,7 @@
     "(deep learning OR machine learning) AND (image reconstruction) AND (@radiology)"
   ],
   "arxiv": [
-    (deep learning OR neural network OR diffusion model) AND (denoising OR noise reduction OR noise suppression OR image restoration)
-    "cat:cs.CV OR ti:\"super resolution\"",
-    "all:\"deep learning\" AND all:\"magnetic resonance\""
+    "(deep learning OR neural network OR diffusion model) AND (denoising OR noise reduction OR noise suppression OR image restoration)",
   ], 
   "news": [
     "(AI OR Machine Learning) AND (research OR study)",

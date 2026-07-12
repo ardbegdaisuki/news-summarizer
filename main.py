@@ -10,6 +10,22 @@ import json
 
 # 環境変数読み込み
 # load_dotenv()
+
+SEEN_FILE = "seen_papers.json"
+
+def load_seen_papers():
+    if not os.path.exists(SEEN_FILE):
+        return {"pubmed": [], "arxiv": []}
+    try:
+        with open(SEEN_FILE, "r") as f:
+            return json.load(f)
+    except:
+        return {"pubmed": [], "arxiv": []}
+
+def save_seen_papers(seen):
+    with open(SEEN_FILE, "w") as f:
+        json.dump(seen, f, indent=2)
+
 MONTH_MAP = {
     "Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04",
     "May": "05", "Jun": "06", "Jul": "07", "Aug": "08",
@@ -186,14 +202,19 @@ def fetch_ranked_news():
 
 
 def fetch_pubmed_papers():
-    """PubMedから複数キーワードで論文を取得し、最後に最新5件だけ返す"""
+    """PubMedから複数キーワードで論文を取得し、重複を除外し、最後に最新5件だけ返す"""
     keywords = load_keywords()
     pubmed_keywords = keywords.get("pubmed", ["(AI OR Machine Learning) AND (research OR study)"])
-    
+
     select_top_n = int(os.getenv("SELECT_TOP_N", 5))
     all_papers = []
 
+    # 🔥 過去に出力した論文IDを読み込む
+    seen = load_seen_papers()
+    seen_pubmed = set(seen.get("pubmed", []))
+
     for selected_keyword in pubmed_keywords:
+
         # --- ESearch ---
         params = {
             "term": selected_keyword,
@@ -205,7 +226,10 @@ def fetch_pubmed_papers():
 
         try:
             time.sleep(0.34)
-            search_response = requests.get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi", params=params)
+            search_response = requests.get(
+                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
+                params=params
+            )
             search_response.raise_for_status()
 
             root = ET.fromstring(search_response.text)
@@ -218,6 +242,11 @@ def fetch_pubmed_papers():
 
             # --- EFetch ---
             for pmid in selected_pmids:
+
+                # 🔥 重複チェック（過去に出力済みならスキップ）
+                if pmid in seen_pubmed:
+                    continue
+
                 fetch_params = {
                     "db": "pubmed",
                     "id": pmid,
@@ -228,7 +257,10 @@ def fetch_pubmed_papers():
                 }
 
                 time.sleep(0.34)
-                fetch_response = requests.get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi", params=fetch_params)
+                fetch_response = requests.get(
+                    "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+                    params=fetch_params
+                )
                 fetch_response.raise_for_status()
 
                 root = ET.fromstring(fetch_response.text)
@@ -253,10 +285,9 @@ def fetch_pubmed_papers():
                     journal_elem = article.find(".//Journal/Title")
                     journal = journal_elem.text if journal_elem is not None else "No journal"
 
-                    # Date
                     # --- 発表日の取得 ---
                     pub_date = "No date"
-                    
+
                     # ① ArticleDate（Electronic）
                     article_elem = article.find("Article")
                     if article_elem is not None:
@@ -267,7 +298,7 @@ def fetch_pubmed_papers():
                             day = article_date_elem.findtext("Day")
                             if year:
                                 pub_date = f"{year}-{month or ''}-{day or ''}".strip("-")
-                    
+
                     # ② JournalIssue → PubDate
                     if pub_date == "No date":
                         journal_issue_elem = article.find("Article/Journal/JournalIssue/PubDate")
@@ -275,7 +306,7 @@ def fetch_pubmed_papers():
                             year = journal_issue_elem.findtext("Year")
                             month = journal_issue_elem.findtext("Month")
                             day = journal_issue_elem.findtext("Day")
-                    
+
                             if year:
                                 if month and day:
                                     pub_date = f"{year}-{month}-{day}"
@@ -283,15 +314,14 @@ def fetch_pubmed_papers():
                                     pub_date = f"{year}-{month}"
                                 else:
                                     pub_date = year
-                    
-                    # ③ MedlineDate（古い論文）
+
+                    # ③ MedlineDate
                     if pub_date == "No date":
                         medline = journal_issue_elem.findtext("MedlineDate") if journal_issue_elem is not None else None
                         if medline:
                             pub_date = medline
 
-
-                    # Add
+                    # --- 🔥 新規論文として追加 ---
                     if pmid_elem is not None:
                         all_papers.append({
                             "title": "".join(title_elem.itertext()).strip() if title_elem is not None else "No title",
@@ -303,6 +333,11 @@ def fetch_pubmed_papers():
                             "search_keyword": selected_keyword
                         })
 
+                        # 🔥 新規論文IDを保存
+                        seen_pubmed.add(pmid)
+                        seen["pubmed"] = list(seen_pubmed)
+                        save_seen_papers(seen)
+
         except Exception as e:
             print(f"PubMed APIエラー (キーワード: {selected_keyword}): {str(e)}")
             continue
@@ -312,7 +347,7 @@ def fetch_pubmed_papers():
     return all_papers_sorted[:5]
     
 def fetch_arxiv_papers():
-    """arXivから複数キーワードで論文を取得し、最後に最新5件だけ返す"""
+    """arXivから複数キーワードで論文を取得し、重複を除外し、最後に最新5件だけ返す"""
     keywords = load_keywords()
     arxiv_queries = keywords.get("arxiv", [])
     if not arxiv_queries:
@@ -320,7 +355,10 @@ def fetch_arxiv_papers():
 
     select_top_n = int(os.getenv("SELECT_TOP_N", 5))
     all_papers = []
-    seen_urls = set()
+
+    # 🔥 過去に出力した論文ID（URL）を読み込む
+    seen = load_seen_papers()
+    seen_arxiv = set(seen.get("arxiv", []))
 
     for query in arxiv_queries:
         time.sleep(0.3)
@@ -366,13 +404,14 @@ def fetch_arxiv_papers():
                 if published_elem is not None and published_elem.text:
                     pub_date = published_elem.text.split("T")[0]
 
-                link = id_elem.text.strip() if id_elem is not None else None
-                url = link or "https://arxiv.org"
+                # URL（arXiv ID）
+                url = id_elem.text.strip() if id_elem is not None else "https://arxiv.org"
 
-                if url in seen_urls:
+                # 🔥 重複チェック（過去に出力済みならスキップ）
+                if url in seen_arxiv:
                     continue
-                seen_urls.add(url)
 
+                # 🔥 新規論文として追加
                 all_papers.append({
                     "title": title,
                     "abstract": abstract,
@@ -382,6 +421,11 @@ def fetch_arxiv_papers():
                     "search_keyword": query
                 })
 
+                # 🔥 新規論文IDを保存
+                seen_arxiv.add(url)
+                seen["arxiv"] = list(seen_arxiv)
+                save_seen_papers(seen)
+
         except Exception as e:
             print(f"arXiv APIエラー (クエリ: {query}): {str(e)}")
             continue
@@ -389,7 +433,6 @@ def fetch_arxiv_papers():
     # --- 🔥 最後に最新5件だけ返す ---
     all_papers_sorted = sorted(all_papers, key=lambda x: x["pub_date"], reverse=True)
     return all_papers_sorted[:5]
-
         
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
     """翻訳&要約（要約だけを返す。雑誌名/日付は外で使う）"""

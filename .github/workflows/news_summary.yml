@@ -58,16 +58,18 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
       
-          # 🔥 main ブランチを origin/main と同期（これが必須）
-          git branch --set-upstream-to=origin/main main
+          # 🔥 リモートの main を強制的にローカルへ同期（最重要）
+          git fetch origin main
+          git reset --hard origin/main
       
-          # 🔥 最新の main を取得
-          git pull --rebase
+          # 🔥 最新の main を取得（fast-forward）
+          git pull --rebase || true
       
           if [ -f seen_papers.json ]; then
             git add seen_papers.json
             git commit -m "Update seen_papers.json [auto]" || echo "No changes to commit"
             git push
           fi
+
 
 

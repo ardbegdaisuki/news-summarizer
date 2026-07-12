@@ -90,7 +90,7 @@ def fetch_pubmed_papers():
     params = {
         "term": os.getenv("PUBMED_SEARCH_KEYWORDS", "(AI OR Machine Learning) AND (research OR study)"),
         "retmax": 100,  # 関連度計算用に多めに取得
-        "sort": "relevance",  # PubMed側で関連度順でソート
+        "sort": "pub_date" #"relevance",  # PubMed側で関連度順でソート
         "tool": "news-summarizer",
         "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
     }

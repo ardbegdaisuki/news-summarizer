@@ -175,7 +175,7 @@ def fetch_pubmed_papers():
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
     """翻訳&要約（モデル選択対応版）"""
     prompt = f"""
-    以下のテキストについて、{target_lang}の要約文のみを生成してください。他の解説・注意事項・装飾は一切不要です。
+    以下のテキストについて、{target_lang}の要約文、雑誌名、発表日のみを生成してください。他の解説・注意事項・装飾は一切不要です。
 
     原文:
     {text}

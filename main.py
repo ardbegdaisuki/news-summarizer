@@ -10,7 +10,44 @@ import json
 
 # 環境変数読み込み
 # load_dotenv()
+MONTH_MAP = {
+    "Jan": "01", "Feb": "02", "Mar": "03", "Apr": "04",
+    "May": "05", "Jun": "06", "Jul": "07", "Aug": "08",
+    "Sep": "09", "Oct": "10", "Nov": "11", "Dec": "12"
+}
+from datetime import datetime
 
+def normalize_pub_date(pub_date):
+    if pub_date is None or pub_date == "No date":
+        return datetime.min
+
+    # 例: "2026-Jan"
+    if "-" in pub_date and pub_date.split("-")[1].isalpha():
+        year, mon = pub_date.split("-")
+        mon = MONTH_MAP.get(mon, "01")
+        return datetime.strptime(f"{year}-{mon}-01", "%Y-%m-%d")
+
+    # 例: "2026-06-25"
+    try:
+        return datetime.strptime(pub_date, "%Y-%m-%d")
+    except:
+        pass
+
+    # 例: "2026-06"
+    try:
+        return datetime.strptime(pub_date, "%Y-%m")
+    except:
+        pass
+
+    # MedlineDate など（例: "2020 Jan-Feb"）
+    for m in MONTH_MAP:
+        if m in pub_date:
+            year = pub_date.split()[0]
+            mon = MONTH_MAP[m]
+            return datetime.strptime(f"{year}-{mon}-01", "%Y-%m-%d")
+
+    return datetime.min
+    
 def load_keywords():
     """keywords.jsonから検索ワードを読み込み、変数を展開"""
     try:
@@ -271,9 +308,9 @@ def fetch_pubmed_papers():
             continue
 
     # --- 🔥 最後に最新5件だけ返す ---
-    all_papers_sorted = sorted(all_papers, key=lambda x: x["pub_date"], reverse=True)
+    all_papers_sorted = sorted(all_papers, key=lambda x: normalize_pub_date(x["pub_date"]), reverse=True)
     return all_papers_sorted[:5]
-
+    
 def fetch_arxiv_papers():
     """arXivから複数キーワードで論文を取得し、最後に最新5件だけ返す"""
     keywords = load_keywords()

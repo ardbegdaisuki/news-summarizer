@@ -149,7 +149,7 @@ def fetch_ranked_news():
 
 
 def fetch_pubmed_papers():
-    """PubMedから複数の検索ワードで論文を取得"""
+    """PubMedから複数キーワードで論文を取得し、最後に最新5件だけ返す"""
     keywords = load_keywords()
     pubmed_keywords = keywords.get("pubmed", ["(AI OR Machine Learning) AND (research OR study)"])
     
@@ -157,8 +157,7 @@ def fetch_pubmed_papers():
     all_papers = []
 
     for selected_keyword in pubmed_keywords:
-
-        # --- Step 1: ESearch ---
+        # --- ESearch ---
         params = {
             "term": selected_keyword,
             "retmax": 100,
@@ -168,11 +167,8 @@ def fetch_pubmed_papers():
         }
 
         try:
-            time.sleep(0.34)  # PubMed レート制限回避
-            search_response = requests.get(
-                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi",
-                params=params
-            )
+            time.sleep(0.34)
+            search_response = requests.get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi", params=params)
             search_response.raise_for_status()
 
             root = ET.fromstring(search_response.text)
@@ -183,7 +179,7 @@ def fetch_pubmed_papers():
 
             selected_pmids = pmids[:select_top_n]
 
-            # --- Step 2: EFetch（PMIDを1件ずつ取得） ---
+            # --- EFetch ---
             for pmid in selected_pmids:
                 fetch_params = {
                     "db": "pubmed",
@@ -194,11 +190,8 @@ def fetch_pubmed_papers():
                     "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
                 }
 
-                time.sleep(0.34)  # PubMed レート制限回避
-                fetch_response = requests.get(
-                    "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
-                    params=fetch_params
-                )
+                time.sleep(0.34)
+                fetch_response = requests.get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi", params=fetch_params)
                 fetch_response.raise_for_status()
 
                 root = ET.fromstring(fetch_response.text)
@@ -216,10 +209,7 @@ def fetch_pubmed_papers():
                     for abstract_part in article.findall(".//Abstract/AbstractText"):
                         text = "".join(abstract_part.itertext()).strip()
                         label = abstract_part.get("Label")
-                        if label:
-                            abstract_texts.append(f"{label}: {text}")
-                        else:
-                            abstract_texts.append(text)
+                        abstract_texts.append(f"{label}: {text}" if label else text)
                     abstract = "\n".join(abstract_texts) if abstract_texts else "No abstract available"
 
                     # Journal
@@ -238,7 +228,7 @@ def fetch_pubmed_papers():
                             if year:
                                 pub_date = f"{year}-{month or ''}-{day or ''}".strip("-")
 
-                    # Add paper
+                    # Add
                     if pmid_elem is not None:
                         all_papers.append({
                             "title": "".join(title_elem.itertext()).strip() if title_elem is not None else "No title",
@@ -250,14 +240,16 @@ def fetch_pubmed_papers():
                             "search_keyword": selected_keyword
                         })
 
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             print(f"PubMed APIエラー (キーワード: {selected_keyword}): {str(e)}")
             continue
 
-    return all_papers
+    # --- 🔥 最後に最新5件だけ返す ---
+    all_papers_sorted = sorted(all_papers, key=lambda x: x["pub_date"], reverse=True)
+    return all_papers_sorted[:5]
 
 def fetch_arxiv_papers():
-    """arXivから複数の検索ワードで論文を取得"""
+    """arXivから複数キーワードで論文を取得し、最後に最新5件だけ返す"""
     keywords = load_keywords()
     arxiv_queries = keywords.get("arxiv", [])
     if not arxiv_queries:
@@ -265,11 +257,9 @@ def fetch_arxiv_papers():
 
     select_top_n = int(os.getenv("SELECT_TOP_N", 5))
     all_papers = []
-    seen_urls = set()  # 重複除去用
+    seen_urls = set()
 
     for query in arxiv_queries:
-
-        # arXiv API レート制限対策
         time.sleep(0.3)
 
         base_url = "https://export.arxiv.org/api/query"
@@ -288,7 +278,6 @@ def fetch_arxiv_papers():
             try:
                 root = ET.fromstring(resp.text)
             except ET.ParseError:
-                print(f"arXiv XML解析エラー → 再試行します (クエリ: {query})")
                 time.sleep(1)
                 resp = requests.get(base_url, params=params, timeout=15)
                 root = ET.fromstring(resp.text)
@@ -301,7 +290,6 @@ def fetch_arxiv_papers():
                 published_elem = entry.find("atom:published", ns)
                 id_elem = entry.find("atom:id", ns)
 
-                # authors
                 authors = []
                 for a in entry.findall("atom:author", ns):
                     name = a.findtext("atom:name", default=None, namespaces=ns)
@@ -313,24 +301,11 @@ def fetch_arxiv_papers():
 
                 pub_date = "No date"
                 if published_elem is not None and published_elem.text:
-                    try:
-                        pub_date = published_elem.text.split("T")[0]
-                    except Exception:
-                        pub_date = published_elem.text
+                    pub_date = published_elem.text.split("T")[0]
 
-                # URL（ID）
-                link = None
-                if id_elem is not None and id_elem.text:
-                    link = id_elem.text.strip()
-                else:
-                    for l in entry.findall("atom:link", ns):
-                        if l.get("rel") == "alternate" and l.get("href"):
-                            link = l.get("href")
-                            break
-
+                link = id_elem.text.strip() if id_elem is not None else None
                 url = link or "https://arxiv.org"
 
-                # 重複除去
                 if url in seen_urls:
                     continue
                 seen_urls.add(url)
@@ -344,14 +319,14 @@ def fetch_arxiv_papers():
                     "search_keyword": query
                 })
 
-        except requests.exceptions.RequestException as e:
+        except Exception as e:
             print(f"arXiv APIエラー (クエリ: {query}): {str(e)}")
             continue
-        except ET.ParseError as e:
-            print(f"arXiv XML解析エラー (クエリ: {query}): {str(e)}")
-            continue
 
-    return all_papers
+    # --- 🔥 最後に最新5件だけ返す ---
+    all_papers_sorted = sorted(all_papers, key=lambda x: x["pub_date"], reverse=True)
+    return all_papers_sorted[:5]
+
         
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
     """翻訳&要約（要約だけを返す。雑誌名/日付は外で使う）"""

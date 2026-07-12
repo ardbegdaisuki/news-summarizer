@@ -183,34 +183,46 @@ def fetch_pubmed_papers():
         
             pmid_elem = article.find(".//PMID")
             title_elem = article.find(".//ArticleTitle")
-            abstract_elem = article.find(".//AbstractText")
-        
+
+            # Abstract は複数要素の可能性があるので結合する
+            abstract_texts = []
+            for abstract_part in article.findall(".//Abstract/AbstractText"):
+                if abstract_part is None:
+                    continue
+                # AbstractText はネストやタグを含む場合があるので itertext で結合
+                text = "".join(abstract_part.itertext()).strip() if hasattr(abstract_part, "itertext") else (abstract_part.text or "").strip()
+                label = abstract_part.get("Label")
+                if label:
+                    abstract_texts.append(f"{label}: {text}")
+                else:
+                    abstract_texts.append(text)
+            abstract = "\n".join([t for t in abstract_texts if t]) if abstract_texts else "No abstract available"
             # --- Journal名 ---
             journal_elem = article.find(".//Journal/Title")
             journal = journal_elem.text if journal_elem is not None else "No journal"
-        
-            # --- 発表日（ArticleDate を厳密に優先） ---
+            # --- 発表日の取得（既存ロジックを維持しつつMedlineDateも試す） ---
             pub_year = pub_month = pub_day = None
-        
-            # Article階層を厳密に取得
             article_elem = article.find("Article")
             if article_elem is not None:
-                # Electronic公開日を優先
                 article_date_elem = article_elem.find("ArticleDate[@DateType='Electronic']")
                 if article_date_elem is not None:
                     pub_year = article_date_elem.findtext("Year")
                     pub_month = article_date_elem.findtext("Month")
                     pub_day = article_date_elem.findtext("Day")
-        
-            # フォールバック：JournalIssue の PubDate（階層限定）
             if pub_year is None:
                 journal_issue_elem = article.find("Article/Journal/JournalIssue/PubDate")
                 if journal_issue_elem is not None:
+                    # PubDate には Year / Month / Day 以外に MedlineDate が入ることがある
                     pub_year = journal_issue_elem.findtext("Year")
                     pub_month = journal_issue_elem.findtext("Month")
                     pub_day = journal_issue_elem.findtext("Day")
-        
-            # 日付の組み立て
+                    if pub_year is None:
+                        medline = journal_issue_elem.findtext("MedlineDate")
+                        if medline:
+                            # 例: "2023 Sep-Oct" をそのまま使う
+                            pub_date = medline
+                        else:
+                            pub_date = "No date"
             if pub_year:
                 if pub_month and pub_day:
                     pub_date = f"{pub_year}-{pub_month}-{pub_day}"
@@ -218,15 +230,10 @@ def fetch_pubmed_papers():
                     pub_date = f"{pub_year}-{pub_month}"
                 else:
                     pub_date = pub_year
-            else:
-                pub_date = "No date"
-        
             # 論文情報をpapersに追加
             if pmid_elem is not None:
                 pmid = pmid_elem.text
-                title = title_elem.text if title_elem is not None else "No title"
-                abstract = abstract_elem.text if abstract_elem is not None else "No abstract available"
-        
+                title = "".join(title_elem.itertext()).strip() if (title_elem is not None and hasattr(title_elem, "itertext")) else (title_elem.text if title_elem is not None else "No title")
                 papers.append({
                     "title": title,
                     "abstract": abstract,
@@ -244,24 +251,23 @@ def fetch_pubmed_papers():
 
 
 def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
-    """翻訳&要約（モデル選択対応版）"""
-    prompt = f"""
-    以下のテキストについて、{target_lang}の要約文、雑誌名、発表日のみを生成してください。他の解説・注意事項・装飾は一切不要です。
+    """翻訳&要約（要約だけを返す。雑誌名/日付は外で使う）"""
+    prompt = f"""以下の原文について、{target_lang}で要約だけを出力してください。雑誌名や発表日は出力しないでください。箇条書きやヘッダは不要です。
 
-    原文:
-    {text}
-    """
-    
+原文:
+{text}
+"""
     if ai_config["provider"] == "gemini":
         response = ai_config["client"].generate_content(prompt)
-        return response.text
+        # gemini のレスポンス取得方法に合わせて要約テキストを返す
+        return response.text if hasattr(response, "text") else str(response)
     else:
         response = ai_config["client"].chat.completions.create(
             model=ai_config["model"],
             messages=[{"role": "user", "content": prompt}],
             temperature=0.3
         )
-        return response.choices[0].message.content
+        return response.choices[0].message.content.strip()
 
 def send_notification(message: str):
     """Slack/Discordに通知"""
@@ -298,7 +304,7 @@ if __name__ == "__main__":
         #        "url": article['url']
         #    })
         
-        # PubMed論文を処理
+        # PubMed論文を処理（例）
         for paper in papers:
             content = f"{paper['title']}\n\n{paper['abstract']}"
             summary = translate_and_summarize(ai_config, content, target_lang)
@@ -306,18 +312,21 @@ if __name__ == "__main__":
                 "type": "paper",
                 "summary": summary,
                 "title": paper['title'],
-                "url": paper['url']
+                "url": paper['url'],
+                "journal": paper.get("journal", "No journal"),
+                "pub_date": paper.get("pub_date", "No date")
             })
         
-        if not all_sources:
-            send_notification("⚠️ 今日の該当記事・論文が見つかりませんでした")
-            exit()
-        
-        # 通知を送信
+        # 通知送信（例）
         for source in all_sources:
-            source_type = "📄【論文】" if source["type"] == "paper" else "📰【ニュース】"
+            if source["type"] == "paper":
+                source_type = "📄【論文】"
+                header = f"{source_type}\n*雑誌*: {source.get('journal')}\n*発表日*: {source.get('pub_date')}\n"
+            else:
+                source_type = "📰【ニュース】"
+                header = f"{source_type}\n"
             send_notification(
-                f"{source_type}\n"
+                f"{header}"
                 f"*翻訳要約*\n{source['summary']}\n\n"
                 f"*Title*: {source['title']}\n"
                 f"*URL*: {source['url']}"

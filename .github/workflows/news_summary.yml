@@ -64,19 +64,24 @@ jobs:
           
           git checkout -B main
           git fetch origin main
-          git reset --hard origin/main
           
           if [ -f seen_papers.json ]; then
             git add seen_papers.json
             git commit -m "Update seen_papers.json [auto]" || echo "No changes to commit"
             
-            # リトライロジック（プッシュ前にリベース）
-            for i in {1..3}; do
-              git pull --rebase origin main && git push origin main && break
-              if [ $i -eq 3 ]; then
-                echo "Failed to push after 3 attempts"
+            # リトライロジック：最大5回まで試行
+            MAX_ATTEMPTS=5
+            for i in $(seq 1 $MAX_ATTEMPTS); do
+              echo "Attempt $i of $MAX_ATTEMPTS"
+              git fetch origin main
+              git rebase origin/main && git push origin main && break
+              
+              if [ $i -eq $MAX_ATTEMPTS ]; then
+                echo "Failed to push after $MAX_ATTEMPTS attempts"
                 exit 1
               fi
+              
+              echo "Retrying in 2 seconds..."
               sleep 2
             done
           fi

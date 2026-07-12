@@ -14,6 +14,7 @@ jobs:
         with:
           fetch-depth: 0        # 🔥 フル履歴を取得
           ref: main             # 🔥 main ブランチを明示的にチェックアウト
+          token: ${{ secrets.GITHUB_TOKEN }} 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

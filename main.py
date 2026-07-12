@@ -105,7 +105,7 @@ def fetch_pubmed_papers():
     select_top_n = int(os.getenv("SELECT_TOP_N", 5))
     params = {
         #"term": os.getenv("PUBMED_SEARCH_KEYWORDS", "(AI OR Machine Learning) AND (research OR study)"),
- 　　　　"term": selected_keyword,  # ← ここでJSONから読み込んだワードを使用
+        "term": selected_keyword, #← ここでJSONから読み込んだワードを使用
         "retmax": 100,  # 関連度計算用に多めに取得
         "sort":"pub_date", #"relevance",  # PubMed側で関連度順でソート
         "tool":"news-summarizer",

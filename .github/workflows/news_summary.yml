@@ -53,10 +53,14 @@ jobs:
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
       
+          # 🔥 最新の main ブランチを取得（fast-forward）
+          git pull --rebase
+      
           # 変更がある場合のみコミット
           if [ -f seen_papers.json ]; then
             git add seen_papers.json
             git commit -m "Update seen_papers.json [auto]" || echo "No changes to commit"
             git push
           fi
+
 

@@ -185,7 +185,7 @@ if __name__ == "__main__":
         target_lang = os.getenv("TARGET_LANGUAGE", "ja")
         
         # ニュースと論文の両方を取得
-        articles = fetch_ranked_news()
+        #articles = fetch_ranked_news()
         papers = fetch_pubmed_papers()
         
         all_sources = []

@@ -364,7 +364,7 @@ if __name__ == "__main__":
         # ニュースと論文の両方を取得
         #articles = fetch_ranked_news()
         papers = fetch_pubmed_papers()
-        
+        arxiv_papers = fetch_arxiv_papers() 
         all_sources = []
         
         # ニュース記事を処理

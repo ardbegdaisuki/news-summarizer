@@ -41,7 +41,7 @@ jobs:
           OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-3.5-turbo' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           
-          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-3.5-flash-lite' }}
+          GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-3.1-flash-lite' }}
           #GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-3.5-flash' }}
           
           # 翻訳設定

@@ -175,18 +175,23 @@ def fetch_pubmed_papers():
         papers = []
         root = ET.fromstring(fetch_response.text)
         
-        # XMLから論文情報を抽出
-        for article in root.findall(".//MedlineCitation"):
+        # XMLから論文情報を抽出（PubmedArticle 単位で処理）
+        for pubmed_article in root.findall(".//PubmedArticle"):
+            article = pubmed_article.find("MedlineCitation")
+            if article is None:
+                continue
+        
             pmid_elem = article.find(".//PMID")
             title_elem = article.find(".//ArticleTitle")
             abstract_elem = article.find(".//AbstractText")
+        
             # --- Journal名 ---
             journal_elem = article.find(".//Journal/Title")
             journal = journal_elem.text if journal_elem is not None else "No journal"
-
+        
             # --- 発表日（ArticleDate を厳密に優先） ---
             pub_year = pub_month = pub_day = None
-
+        
             # Article階層を厳密に取得
             article_elem = article.find("Article")
             if article_elem is not None:
@@ -196,7 +201,7 @@ def fetch_pubmed_papers():
                     pub_year = article_date_elem.findtext("Year")
                     pub_month = article_date_elem.findtext("Month")
                     pub_day = article_date_elem.findtext("Day")
-
+        
             # フォールバック：JournalIssue の PubDate（階層限定）
             if pub_year is None:
                 journal_issue_elem = article.find("Article/Journal/JournalIssue/PubDate")
@@ -204,7 +209,7 @@ def fetch_pubmed_papers():
                     pub_year = journal_issue_elem.findtext("Year")
                     pub_month = journal_issue_elem.findtext("Month")
                     pub_day = journal_issue_elem.findtext("Day")
-
+        
             # 日付の組み立て
             if pub_year:
                 if pub_month and pub_day:
@@ -216,19 +221,21 @@ def fetch_pubmed_papers():
             else:
                 pub_date = "No date"
         
+            # 論文情報をpapersに追加
             if pmid_elem is not None:
                 pmid = pmid_elem.text
                 title = title_elem.text if title_elem is not None else "No title"
                 abstract = abstract_elem.text if abstract_elem is not None else "No abstract available"
-                
+        
                 papers.append({
                     "title": title,
                     "abstract": abstract,
                     "pmid": pmid,
-                    "journal": journal,        # ← 追加
-                    "pub_date": pub_date,      # ← 追加                    
+                    "journal": journal,
+                    "pub_date": pub_date,
                     "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/"
                 })
+
         
         return papers
 

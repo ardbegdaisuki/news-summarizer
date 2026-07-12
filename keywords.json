@@ -6,12 +6,22 @@
     "general_medical": "Nature Medicine[Journal] OR Lancet[Journal] OR JAMA[Journal] OR BMJ[Journal]"
   },
   "pubmed": [
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (super resolution) AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (positron emission tomography) AND (@medical_physics)",
-    "(deep learning OR machine learning) AND (image reconstruction) AND (@radiology)"
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND ("image restoration") AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND ("image denoising") AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND ("denoising") AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND ("noise reduction") AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND ("super resolution") AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND ("deblurring") AND (@medical_imaging)",
+    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND ("image enhancement") AND (@medical_imaging)"
   ],
   "arxiv": [
-    "cs.CV AND \"image restoration\""
+    "cs.CV AND \"image restoration\"",
+    "cs.CV AND \"image denoising\"",
+    "cs.CV AND image AND denoising",
+    "cs.CV AND image AND \"noise reduction\"",
+    "cs.CV AND image AND \"super resolution\"",
+    "cs.CV AND image AND deblurring",
+    "cs.CV AND \"image enhancement\""
   ],
   "news": [
     "(AI OR Machine Learning) AND (research OR study)",

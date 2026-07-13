@@ -466,8 +466,8 @@ def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja")
         )
         return response.choices[0].message.content.strip()
 
-def send_notification(message: str):
-    """Slack/Discordに通知"""
+def send_notification(message: str, thread_ts: str = None):
+    """Slack/Discordに通知（thread_tsは無視：Webhookではスレッド不可）"""
     webhook_url = os.getenv("SLACK_WEBHOOK_URL") or os.getenv("DISCORD_WEBHOOK_URL")
     if not webhook_url:
         raise ValueError("通知先Webhookが設定されていません")

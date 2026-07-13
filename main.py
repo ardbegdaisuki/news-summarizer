@@ -244,8 +244,8 @@ def fetch_pubmed_papers():
             if not pmids:
                 continue
 
-            selected_pmids = pmids[:select_top_n]
-
+            #selected_pmids = pmids[:select_top_n]
+            selected_pmids = pmids
             # --- EFetch ---
             for pmid in selected_pmids:
 
@@ -378,7 +378,7 @@ def fetch_arxiv_papers():
         params = {
             "search_query": query,
             "start": 0,
-            "max_results": select_top_n,
+            "max_results": 100,
             "sortBy": "submittedDate",
             "sortOrder": "descending"
         }

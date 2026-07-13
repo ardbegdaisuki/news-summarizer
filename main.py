@@ -467,17 +467,33 @@ def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja")
         return response.choices[0].message.content.strip()
 
 def send_notification(message: str, thread_ts: str = None):
-    """Slack/Discordに通知（thread_tsは無視：Webhookではスレッド不可）"""
-    webhook_url = os.getenv("SLACK_WEBHOOK_URL") or os.getenv("DISCORD_WEBHOOK_URL")
-    if not webhook_url:
-        raise ValueError("通知先Webhookが設定されていません")
-    
-    payload = {
-        "text": message
-    } if "slack" in webhook_url.lower() else {
-        "content": message
+    slack_token = os.getenv("SLACK_BOT_TOKEN")
+    channel_id = os.getenv("SLACK_CHANNEL_ID")
+
+    if not slack_token or not channel_id:
+        raise ValueError("SlackトークンまたはチャンネルIDが設定されていません")
+
+    headers = {
+        "Authorization": f"Bearer {slack_token}",
+        "Content-Type": "application/json"
     }
-    requests.post(webhook_url, json=payload)
+
+    payload = {
+        "channel": channel_id,
+        "text": message
+    }
+
+    if thread_ts:
+        payload["thread_ts"] = thread_ts
+
+    response = requests.post("https://slack.com/api/chat.postMessage", headers=headers, json=payload)
+    data = response.json()
+
+    if not data.get("ok"):
+        raise RuntimeError(f"Slack APIエラー: {data}")
+
+    return data.get("ts")
+
 
 if __name__ == "__main__":
     try:

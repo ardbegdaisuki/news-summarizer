@@ -483,63 +483,39 @@ if __name__ == "__main__":
     try:
         ai_config = init_ai_client()
         target_lang = os.getenv("TARGET_LANGUAGE", "ja")
-        
+
         papers = fetch_pubmed_papers()
         arxiv_papers = fetch_arxiv_papers()
         articles = fetch_ranked_news()
 
         all_sources = []
 
-        # ここで一度だけ送信日時を送る
+        # 🕒 親メッセージ（スレッドの起点）
         timestamp = (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-        send_notification(f"🕒 *送信日時*: {timestamp}\n\n---")
+        parent_ts = send_notification(f"🕒 *送信日時*: {timestamp}\n\n---")
 
-        # PubMed論文
+        # PubMed
         for paper in papers:
             content = f"{paper['title']}\n\n{paper['abstract']}"
             summary = translate_and_summarize(ai_config, content, target_lang)
-            all_sources.append({
-                "type": "paper",
-                "source": "PubMed",
-                "summary": summary,
-                "title": paper['title'],
-                "url": paper['url'],
-                "journal": paper.get("journal", "No journal"),
-                "pub_date": paper.get("pub_date", "No date"),
-                "keyword": paper.get("search_keyword")
-            })
+            send_notification(
+                f"📄【PubMed】\n🔍 `{paper.get('search_keyword')}`\n"
+                f"*雑誌*: {paper.get('journal')}\n*発表日*: {paper.get('pub_date')}\n"
+                f"*翻訳要約*\n{summary}\n\n"
+                f"*Title*: {paper['title']}\n*URL*: {paper['url']}",
+                thread_ts=parent_ts
+            )
 
-        # arXiv論文
+        # arXiv
         for a in arxiv_papers:
             content = f"{a['title']}\n\n{a['abstract']}"
             summary = translate_and_summarize(ai_config, content, target_lang)
-            all_sources.append({
-                "type": "paper",
-                "source": "arXiv",
-                "summary": summary,
-                "title": a['title'],
-                "url": a['url'],
-                "authors": ", ".join(a.get("authors", [])) or "No authors",
-                "pub_date": a.get("pub_date", "No date"),
-                "keyword": a.get("search_keyword")
-            })
-
-        # 通知送信（ここでは日時を送らない）
-        for source in all_sources:
-            keyword_info = f"🔍 検索ワード: `{source.get('keyword')}`\n" if source.get('keyword') else ""
-            
-            if source["type"] == "paper":
-                source_type = f"📄【{source.get('source', '論文')}】"
-                header = f"{source_type}\n{keyword_info}*雑誌*: {source.get('journal')}\n*発表日*: {source.get('pub_date')}\n"
-            else:
-                source_type = "📰【ニュース】"
-                header = f"{source_type}\n{keyword_info}"
-            
             send_notification(
-                f"{header}"
-                f"*翻訳要約*\n{source['summary']}\n\n"
-                f"*Title*: {source['title']}\n"
-                f"*URL*: {source['url']}"
+                f"📄【arXiv】\n🔍 `{a.get('search_keyword')}`\n"
+                f"*発表日*: {a.get('pub_date')}\n"
+                f"*翻訳要約*\n{summary}\n\n"
+                f"*Title*: {a['title']}\n*URL*: {a['url']}",
+                thread_ts=parent_ts
             )
 
     except Exception as e:

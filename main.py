@@ -480,7 +480,9 @@ def send_notification(message: str, thread_ts: str = None):
 
     payload = {
         "channel": channel_id,
-        "text": message
+        "text": message,
+        "unfurl_links": False,
+        "unfurl_media": False
     }
 
     if thread_ts:

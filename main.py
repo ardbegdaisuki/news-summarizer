@@ -487,14 +487,16 @@ if __name__ == "__main__":
         papers = fetch_pubmed_papers()
         arxiv_papers = fetch_arxiv_papers()
         articles = fetch_ranked_news()
-        
-        # 全ソースの処理
+
         all_sources = []
-        
+
+        # ここで一度だけ送信日時を送る
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        send_notification(f"🕒 *送信日時*: {timestamp}\n\n---")
+
         # PubMed論文
         for paper in papers:
             content = f"{paper['title']}\n\n{paper['abstract']}"
-            #summary = "test"
             summary = translate_and_summarize(ai_config, content, target_lang)
             all_sources.append({
                 "type": "paper",
@@ -506,11 +508,10 @@ if __name__ == "__main__":
                 "pub_date": paper.get("pub_date", "No date"),
                 "keyword": paper.get("search_keyword")
             })
-        
+
         # arXiv論文
         for a in arxiv_papers:
             content = f"{a['title']}\n\n{a['abstract']}"
-            #summary = "test"
             summary = translate_and_summarize(ai_config, content, target_lang)
             all_sources.append({
                 "type": "paper",
@@ -522,10 +523,8 @@ if __name__ == "__main__":
                 "pub_date": a.get("pub_date", "No date"),
                 "keyword": a.get("search_keyword")
             })
-        
 
-        
-        # 通知送信
+        # 通知送信（ここでは日時を送らない）
         for source in all_sources:
             keyword_info = f"🔍 検索ワード: `{source.get('keyword')}`\n" if source.get('keyword') else ""
             
@@ -542,7 +541,7 @@ if __name__ == "__main__":
                 f"*Title*: {source['title']}\n"
                 f"*URL*: {source['url']}"
             )
-            
+
     except Exception as e:
         error_msg = f"⚠️ 致命的なエラー: {str(e)}"
         print(error_msg)

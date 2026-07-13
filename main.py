@@ -491,7 +491,7 @@ if __name__ == "__main__":
         all_sources = []
 
         # ここで一度だけ送信日時を送る
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        timestamp = (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
         send_notification(f"🕒 *送信日時*: {timestamp}\n\n---")
 
         # PubMed論文

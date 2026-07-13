@@ -497,6 +497,8 @@ def send_notification(message: str, thread_ts: str = None):
 
 if __name__ == "__main__":
     try:
+        print("DEBUG SLACK_CHANNEL_ID =", os.getenv("SLACK_CHANNEL_ID"))
+        print("DEBUG SLACK_BOT_TOKEN =", os.getenv("SLACK_BOT_TOKEN"))
         ai_config = init_ai_client()
         target_lang = os.getenv("TARGET_LANGUAGE", "ja")
 

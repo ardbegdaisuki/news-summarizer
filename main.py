@@ -238,7 +238,9 @@ def fetch_pubmed_papers():
 
             root = ET.fromstring(search_response.text)
             pmids = [pmid.text for pmid in root.findall(".//Id")]
-
+            
+            print(f"[DEBUG] PubMed '{selected_keyword}' 件数: {len(pmids)}")
+            
             if not pmids:
                 continue
 

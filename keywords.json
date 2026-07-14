@@ -6,22 +6,22 @@
     "general_medical": "Nature Medicine[Journal] OR Lancet[Journal] OR JAMA[Journal] OR BMJ[Journal]"
   },
   "pubmed": [
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND \"image restoration\" AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND \"image denoising\" AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND denoising AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND \"noise reduction\" AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND \"super resolution\" AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND deblurring AND (@medical_imaging)",
-    "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND \"image enhancement\" AND (@medical_imaging)"
+    "\"image restoration\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (@medical_imaging)",
+    "\"image denoising\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (@medical_imaging)",
+    "denoising AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (@medical_imaging)",
+    "\"noise reduction\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (@medical_imaging)",
+    "\"super resolution\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (@medical_imaging)",
+    "deblurring AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (@medical_imaging)",
+    "\"image enhancement\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND (@medical_imaging)"
   ],
   "arxiv": [
-    "cs.CV AND \"image restoration\"",
-    "cs.CV AND \"image denoising\"",
-    "cs.CV AND image AND denoising",
-    "cs.CV AND image AND \"noise reduction\"",
-    "cs.CV AND image AND \"super resolution\"",
-    "cs.CV AND image AND deblurring",
-    "cs.CV AND \"image enhancement\""
+    "\"image restoration\" AND cs.CV",
+    "\"image denoising\" AND cs.CV",
+    "denoising AND image AND cs.CV",
+    "\"noise reduction\" AND cs.CV AND image",
+    "\"super resolution\" AND cs.CV AND image",
+    "deblurring AND cs.CV AND image",
+    "\"image enhancement\" AND cs.CV"
   ],
   "news": [
     "(AI OR Machine Learning) AND (research OR study)",

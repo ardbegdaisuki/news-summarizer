@@ -498,6 +498,33 @@ def send_notification(message: str, thread_ts: str = None):
 
     return data.get("ts")
 
+def extract_primary_keyword(query: str) -> str:
+    """
+    検索式の最初のキーワードだけを抽出する。
+    例:
+      "\"image restoration\" AND (deep learning ...)" → image restoration
+      "(deep learning OR machine learning) AND MRI" → deep learning OR machine learning
+    """
+    q = query.strip()
+
+    # ① ダブルクォートで始まる場合 → 最初の "..." を抜き出す
+    if q.startswith('"'):
+        end = q.find('"', 1)
+        if end != -1:
+            return q[1:end]
+
+    # ② 括弧で始まる場合 → 最初の (...) を抜き出す
+    if q.startswith("("):
+        end = q.find(")")
+        if end != -1:
+            return q[1:end]
+
+    # ③ AND で区切る → 最初の語を取る
+    if "AND" in q:
+        return q.split("AND")[0].strip()
+
+    # ④ それ以外 → 全体を返す
+    return q
 
 if __name__ == "__main__":
     try:
@@ -518,10 +545,11 @@ if __name__ == "__main__":
 
         # PubMed
         for paper in papers:
+            primary_kw = extract_primary_keyword(paper.get('search_keyword', ''))
             content = f"{paper['title']}\n\n{paper['abstract']}"
             summary = translate_and_summarize(ai_config, content, target_lang)
             send_notification(
-                f"📄【PubMed】\n🔍 `{paper.get('search_keyword')}`\n"
+                f"📄【PubMed】\n🔍 `{primary_kw}`\n"
                 f"*雑誌*: {paper.get('journal')}\n*発表日*: {paper.get('pub_date')}\n"
                 f"*翻訳要約*\n{summary}\n\n"
                 f"*Title*: {paper['title']}\n*URL*: {paper['url']}",
@@ -530,10 +558,11 @@ if __name__ == "__main__":
 
         # arXiv
         for a in arxiv_papers:
+            primary_kw = extract_primary_keyword(a.get('search_keyword', ''))
             content = f"{a['title']}\n\n{a['abstract']}"
             summary = translate_and_summarize(ai_config, content, target_lang)
             send_notification(
-                f"📄【arXiv】\n🔍 `{a.get('search_keyword')}`\n"
+                f"📄【arXiv】\n🔍 `{primary_kw}`\n"
                 f"*発表日*: {a.get('pub_date')}\n"
                 f"*翻訳要約*\n{summary}\n\n"
                 f"*Title*: {a['title']}\n*URL*: {a['url']}",

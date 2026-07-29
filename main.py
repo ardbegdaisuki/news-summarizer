@@ -827,7 +827,7 @@ if __name__ == "__main__":
         for paper in new_papers:
             add_paper_to_index(paper)
             
-        # SQLite に保存（FAISS検索で使うメタデータ）
+        # --- SQLite に保存（FAISS検索で使うメタデータ） ---
         conn = sqlite3.connect("papers.db")
         cur = conn.cursor()
         
@@ -838,6 +838,7 @@ if __name__ == "__main__":
                 title TEXT,
                 abstract TEXT,
                 url TEXT,
+                journal TEXT,
                 pub_date TEXT,
                 citation INTEGER
             )
@@ -853,14 +854,14 @@ if __name__ == "__main__":
                 paper["title"],
                 paper["abstract"],
                 paper["url"],
-                paper["journal"],
-                paper["pub_date"],
-                paper["citation"]
+                paper.get("journal", "Unknown"),
+                paper.get("pub_date", "No date"),
+                paper.get("citation", 0)
             ))
-
         
         conn.commit()
         conn.close()
+
 
         # 3. 類似度検索
         similar_results = search_similar_papers(interest_text, top_k=5)

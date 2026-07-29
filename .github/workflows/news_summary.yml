@@ -24,10 +24,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-          
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-          
+
       - name: Run News Summarizer
         env:
           # NewsAPI設定
@@ -35,14 +35,15 @@ jobs:
           SELECT_TOP_N: ${{ secrets.SELECT_TOP_N || 5 }}  # デフォルト5件
           MAX_ARTICLES: ${{ secrets.MAX_ARTICLES || 20 }} # デフォルト20件
           SEARCH_KEYWORDS: ${{ secrets.SEARCH_KEYWORDS }}
-       
+
           # PubMed設定
           PUBMED_EMAIL: ${{ secrets.PUBMED_EMAIL }}
           PUBMED_SEARCH_KEYWORDS: ${{ secrets.PUBMED_SEARCH_KEYWORDS }}
-          
+
           # 通知先設定
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          
           SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
   
@@ -54,10 +55,10 @@ jobs:
           #GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-1.5-flash-lite' }}
           GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-3.1-flash-lite' }}
           #GEMINI_MODEL: ${{ secrets.GEMINI_MODEL || 'gemini-3.5-flash' }}
-          
+
           # 翻訳設定
           TARGET_LANGUAGE: ${{ secrets.TARGET_LANGUAGE || 'ja' }}
-          
+
         run: python main.py
       - name: Save seen_papers.json to repository
         run: |
@@ -65,14 +66,12 @@ jobs:
           git config --global user.email "github-actions@github.com"
       
           git fetch origin main
-      
+          git checkout -B main origin/main
+
           if [ -f seen_papers.json ]; then
             git add seen_papers.json
             git commit -m "Update seen_papers.json [auto]" || echo "No changes to commit"
-            git push origin main
+
+            # 🔥 fast-forward できなくても必ず push する
+            git push origin main --force
           fi
-
-
-
-
-

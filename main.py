@@ -12,6 +12,45 @@ import sqlite3
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
+import math
+from datetime import datetime
+
+def compute_recency_score(pub_date):
+    """発表日から Recency スコアを計算（新しいほど高い）"""
+    try:
+        d = datetime.strptime(pub_date, "%Y-%m-%d")
+    except:
+        return 0.0
+
+    days = (datetime.now() - d).days
+    years = days / 365.0
+
+    return 1 / (1 + years)  # 新しいほど 1 に近い
+
+def compute_citation_score(citation_count):
+    """引用数から Citation スコアを計算（ログスケール）"""
+    if citation_count is None:
+        return 0.0
+    return math.log(1 + citation_count)
+
+def compute_novelty_score(ai_summary_text):
+    """LLM の出力から Novelty スコア（1〜5）を抽出"""
+    for line in ai_summary_text.splitlines():
+        if "Novelty" in line:
+            nums = [int(s) for s in line.split() if s.isdigit()]
+            if nums:
+                return nums[0] / 5.0  # 0〜1 に正規化
+    return 0.5  # デフォルト
+
+def compute_final_score(similarity, novelty, recency, citation):
+    return (
+        0.45 * similarity +
+        0.25 * novelty +
+        0.20 * recency +
+        0.10 * citation
+    )
+
+
 
 # ============================================================
 # 1. FAISS 永続化（保存・読み込み）
@@ -184,30 +223,46 @@ def summarize_with_ai(ai_config, title, abstract):
 
 # Slack送信用フォーマット
 def send_faiss_result_to_slack(ai_config, faiss_results):
-    parent_ts = send_notification("🔍 *FAISS による推薦論文（敦郎さんの興味に最も近い論文）*")
+    parent_ts = send_notification("🔍 *FAISS 推薦論文（複合スコア版）*")
 
     for r in faiss_results:
         pid = r["pid"]
-        score = r["score"]
+        similarity = r["score"]
 
         # SQLite からメタデータ取得
         conn = sqlite3.connect("papers.db")
         cur = conn.cursor()
-        cur.execute("SELECT title, abstract, url FROM papers WHERE pid=?", (pid,))
+        cur.execute("SELECT title, abstract, url, pub_date, citation FROM papers WHERE pid=?", (pid,))
         row = cur.fetchone()
 
         if not row:
             continue
 
-        title, abstract, url = row
+        title, abstract, url, pub_date, citation_count = row
 
         # LLMで Summary / Tags / Novelty を生成
         ai_summary = summarize_with_ai(ai_config, title, abstract)
 
+        # Novelty スコア抽出
+        novelty_score = compute_novelty_score(ai_summary)
+
+        # Recency スコア
+        recency_score = compute_recency_score(pub_date)
+
+        # Citation スコア
+        citation_score = compute_citation_score(citation_count)
+
+        # 複合スコア
+        final_score = compute_final_score(similarity, novelty_score, recency_score, citation_score)
+
         # Slackへ送信
         message = f"""
 📘【FAISS 推薦論文】
-Similarity: {score:.3f}
+Final Score: {final_score:.3f}
+Similarity: {similarity:.3f}
+Novelty: {novelty_score:.2f}
+Recency: {recency_score:.2f}
+Citation: {citation_score:.2f}
 
 {ai_summary}
 
@@ -215,6 +270,7 @@ Similarity: {score:.3f}
 *URL*: {url}
 """
         send_notification(message, thread_ts=parent_ts)
+
 
 
 # ============================================================

@@ -810,6 +810,8 @@ if __name__ == "__main__":
         print("DEBUG SLACK_CHANNEL_ID =", os.getenv("SLACK_CHANNEL_ID"))
         print("DEBUG SLACK_BOT_TOKEN =", os.getenv("SLACK_BOT_TOKEN"))
         ai_config = init_ai_client()
+        print("DEBUG AI_PROVIDER =", ai_config["provider"])
+        print("DEBUG AI_MODEL =", ai_config["model"])
 
         # 1. PubMed / arXiv の論文を取得
         papers = fetch_pubmed_papers()

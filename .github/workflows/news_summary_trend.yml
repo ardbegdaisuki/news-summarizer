@@ -59,7 +59,7 @@ jobs:
           # 翻訳設定
           TARGET_LANGUAGE: ${{ secrets.TARGET_LANGUAGE || 'ja' }}
 
-        run: python main.py
+        run: python main_trend.py
       - name: Save seen_papers.json to repository
         run: |
           git config --global user.name "github-actions"

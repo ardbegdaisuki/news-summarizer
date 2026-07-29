@@ -7,257 +7,6 @@ import google.generativeai as genai
 from datetime import datetime, timedelta
 import json
 
-
-import sqlite3
-import numpy as np
-import faiss
-from sentence_transformers import SentenceTransformer
-import math
-from datetime import datetime
-
-def compute_recency_score(pub_date):
-    """発表日から Recency スコアを計算（新しいほど高い）"""
-    try:
-        d = datetime.strptime(pub_date, "%Y-%m-%d")
-    except:
-        return 0.0
-
-    days = (datetime.now() - d).days
-    years = days / 365.0
-
-    return math.exp(-years)
-
-def compute_citation_score(citation_count):
-    """引用数から Citation スコアを計算（ログスケール）"""
-    if citation_count is None:
-        return 0.0
-    return math.log(1 + citation_count)
-
-def compute_novelty_score(ai_summary_text):
-    """LLM の出力から Novelty スコア（1〜5）を抽出"""
-    for line in ai_summary_text.splitlines():
-        if "Novelty" in line:
-            nums = [int(s) for s in line.split() if s.isdigit()]
-            if nums:
-                return nums[0] / 5.0  # 0〜1 に正規化
-    return 0.5  # デフォルト
-
-def compute_final_score(similarity, novelty, recency, citation):
-    return (
-        0.35 * similarity +
-        0.20 * novelty +
-        0.35 * recency +
-        0.10 * citation
-    )
-
-
-
-# ============================================================
-# 1. FAISS 永続化（保存・読み込み）
-# ============================================================
-
-EMBED_DIM = 384  # MiniLM-L6-v2 の埋め込み次元
-
-def save_faiss_index(index, paper_ids,
-                     index_path="faiss.index",
-                     ids_path="paper_ids.json"):
-    faiss.write_index(index, index_path)
-    with open(ids_path, "w", encoding="utf-8") as f:
-        json.dump(paper_ids, f, ensure_ascii=False, indent=2)
-
-def load_faiss_index(index_path="faiss.index",
-                     ids_path="paper_ids.json"):
-    if not os.path.exists(index_path) or not os.path.exists(ids_path):
-        return None, []
-    index = faiss.read_index(index_path)
-    with open(ids_path, "r", encoding="utf-8") as f:
-        paper_ids = json.load(f)
-    return index, paper_ids
-
-# ============================================================
-# 2. 埋め込みモデル
-# ============================================================
-
-embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-
-# ============================================================
-# 3. FAISS インデックス初期化（新規 or 復元）
-# ============================================================
-
-index, paper_ids = load_faiss_index()
-
-if index is None:
-    print("FAISS index not found. Creating new index...")
-    index = faiss.IndexFlatIP(EMBED_DIM)
-    paper_ids = []
-else:
-    print(f"Loaded FAISS index with {len(paper_ids)} papers.")
-
-# ============================================================
-# 4. 論文を FAISS に追加する関数
-# ============================================================
-
-def add_paper_to_index(paper):
-    text = paper["title"] + " " + paper["abstract"]
-    vec = embedder.encode(text, normalize_embeddings=True)
-    vec = np.array([vec]).astype("float32")
-
-    index.add(vec)
-    paper_ids.append(paper["id"])
-
-# ============================================================
-# 5. 類似度検索
-# ============================================================
-
-def search_similar_papers(query_text, top_k=5):
-    vec = embedder.encode(query_text, normalize_embeddings=True)
-    vec = np.array([vec]).astype("float32")
-
-    D, I = index.search(vec, top_k)
-
-    results = []
-    for score, idx in zip(D[0], I[0]):
-        pid = paper_ids[idx]
-        results.append({"pid": pid, "score": float(score)})
-    return results
-
-# ============================================================
-# 6. 敦郎さんの興味プロファイル
-# ============================================================
-
-interest_text = """
-normalization
-#Restormer, MDTA, GDFN, PromptIR, MRI画像復元, MoE, Router,
-#Degradation-aware learning, Transformer-based image restoration
-"""
-
-# ============================================================
-# 7. ここから既存の論文取得ロジック（PubMed / arXiv）
-# ============================================================
-
-# 例：敦郎さんの既存コードで new_papers を作っている前提
-# new_papers = fetch_pubmed_and_arxiv()  ← 既存の処理をそのまま使う
-
-# new_papers は以下の形式を想定：
-# {
-#   "id": "arxiv:2401.12345",
-#   "title": "...",
-#   "abstract": "...",
-#   "url": "...",
-#   "pdf_url": "..."
-# }
-
-
-# ============================================================
-# 11. FAISS インデックスを保存（永続化）
-# ============================================================
-
-save_faiss_index(index, paper_ids)
-print("FAISS index saved.")
-
-# ============================================================
-# 10. FAISS結果を Slack に送る（改善フォーマット）
-# ============================================================
-
-def summarize_with_ai(ai_config, title, abstract):
-    """LLMで Summary / Tags / Novelty を生成する"""
-    prompt = f"""
-以下の論文について、3つの情報を生成してください。
-
-1. Summary（日本語で簡潔に要約）
-2. Tags（技術タグを3〜6個）
-3. Novelty（新規性を1〜5で評価し、理由を1行）
-
-論文タイトル:
-{title}
-
-要旨:
-{abstract}
-"""
-
-    if ai_config["provider"] == "gemini":
-        response = ai_config["client"].generate_content(prompt)
-        text = response.text
-    else:
-        response = ai_config["client"].chat.completions.create(
-            model=ai_config["model"],
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3
-        )
-        text = response.choices[0].message.content.strip()
-
-    return text
-
-
-# Slack送信用フォーマット
-def send_faiss_result_to_slack(ai_config, faiss_results):
-    parent_ts = send_notification("🔍 *FAISS 推薦論文（複合スコア版）*")
-
-    for r in faiss_results:
-        pid = r["pid"]
-        similarity = r["score"]
-
-        # SQLite からメタデータ取得
-        conn = sqlite3.connect("papers.db")
-        cur = conn.cursor()
-        cur.execute("SELECT title, abstract, url, pub_date, citation, journal FROM papers WHERE pid=?", (pid,))
-        row = cur.fetchone()
-        
-        if not row:
-            continue
-        
-        title, abstract, url, pub_date, citation_count, journal = row
-
-
-
-        # LLMで Summary / Tags / Novelty を生成
-        ai_summary = summarize_with_ai(ai_config, title, abstract)
-
-        # Novelty スコア抽出
-        novelty_score = compute_novelty_score(ai_summary)
-
-        # Recency スコア
-        recency_score = compute_recency_score(pub_date)
-
-        # Citation スコア
-        citation_score = compute_citation_score(citation_count)
-
-        # 複合スコア
-        final_score = compute_final_score(similarity, novelty_score, recency_score, citation_score)
-
-        # Slackへ送信
-        message = f"""
-        📘【FAISS 推薦論文】
-        Final Score: {final_score:.3f}
-        Similarity: {similarity:.3f}
-        Novelty: {novelty_score:.2f}
-        Recency: {recency_score:.2f}
-        Citation: {citation_score:.2f}
-        
-        *Journal*: {journal}
-        *Published*: {pub_date}
-        
-        {ai_summary}
-        
-        *Title*: {title}
-        *URL*: {url}
-        """
-        
-        send_notification(message, thread_ts=parent_ts)
-
-
-
-# ============================================================
-# 11. FAISS インデックスを保存（永続化）
-# ============================================================
-
-save_faiss_index(index, paper_ids)
-print("FAISS index saved.")
-
-
-
-
-
 # from dotenv import load_dotenv
 
 # 環境変数読み込み
@@ -783,102 +532,43 @@ if __name__ == "__main__":
         print("DEBUG SLACK_CHANNEL_ID =", os.getenv("SLACK_CHANNEL_ID"))
         print("DEBUG SLACK_BOT_TOKEN =", os.getenv("SLACK_BOT_TOKEN"))
         ai_config = init_ai_client()
-        print("DEBUG AI_PROVIDER =", ai_config["provider"])
-        print("DEBUG AI_MODEL =", ai_config["model"])
+        target_lang = os.getenv("TARGET_LANGUAGE", "ja")
 
-        # --- SQLite テーブルを確実に作成（古いスキーマを消す） ---
-        conn = sqlite3.connect("papers.db")
-        cur = conn.cursor()
-
-        cur.execute("DROP TABLE IF EXISTS papers")
-        cur.execute("""
-            CREATE TABLE papers (
-                pid TEXT PRIMARY KEY,
-                title TEXT,
-                abstract TEXT,
-                url TEXT,
-                journal TEXT,
-                pub_date TEXT,
-                citation INTEGER
-            )
-        """)
-
-        conn.commit()
-        conn.close()
-
-        # --- スキーマ確認 ---
-        conn = sqlite3.connect("papers.db")
-        cur = conn.cursor()
-        print("DEBUG: papers テーブルのスキーマ:")
-        for row in cur.execute("PRAGMA table_info(papers);"):
-            print(row)
-        conn.close()
-
-        # 1. PubMed / arXiv の論文を取得
         papers = fetch_pubmed_papers()
         arxiv_papers = fetch_arxiv_papers()
+        articles = fetch_ranked_news()
 
-        # 2. new_papers を作成
-        new_papers = []
+        all_sources = []
+
+        # 🕒 親メッセージ（スレッドの起点）
+        timestamp = (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
+        parent_ts = send_notification(f"🕒 *送信日時*: {timestamp}\n\n---")
 
         # PubMed
-        for p in papers:
-            new_papers.append({
-                "id": f"pubmed:{p['pmid']}",
-                "title": p["title"],
-                "abstract": p["abstract"],
-                "url": p["url"],
-                "journal": p.get("journal", "Unknown Journal"),
-                "pub_date": p.get("pub_date", "No date"),
-                "citation": 0
-            })
+        for paper in papers:
+            primary_kw = extract_primary_keyword(paper.get('search_keyword', ''))
+            content = f"{paper['title']}\n\n{paper['abstract']}"
+            summary = translate_and_summarize(ai_config, content, target_lang)
+            send_notification(
+                f"📄【PubMed】\n🔍 `{primary_kw}`\n"
+                f"*雑誌*: {paper.get('journal')}\n*発表日*: {paper.get('pub_date')}\n"
+                f"*翻訳要約*\n{summary}\n\n"
+                f"*Title*: {paper['title']}\n*URL*: {paper['url']}",
+                thread_ts=parent_ts
+            )
 
         # arXiv
         for a in arxiv_papers:
-            new_papers.append({
-                "id": a["url"],
-                "title": a["title"],
-                "abstract": a["abstract"],
-                "url": a["url"],
-                "journal": "arXiv",
-                "pub_date": a.get("pub_date", "No date"),
-                "citation": 0
-            })
-
-        # 3. FAISS に追加
-        for paper in new_papers:
-            add_paper_to_index(paper)
-
-        # 4. SQLite に保存
-        conn = sqlite3.connect("papers.db")
-        cur = conn.cursor()
-
-        for paper in new_papers:
-            cur.execute("""
-                INSERT OR REPLACE INTO papers (pid, title, abstract, url, journal, pub_date, citation)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                paper["id"],
-                paper["title"],
-                paper["abstract"],
-                paper["url"],
-                paper["journal"],
-                paper["pub_date"],
-                paper["citation"]
-            ))
-
-        conn.commit()
-        conn.close()
-
-        # 5. 類似度検索
-        similar_results = search_similar_papers(interest_text, top_k=5)
-
-        # 6. Slack通知（FAISS結果のみ）
-        send_faiss_result_to_slack(ai_config, similar_results)
-
-        # 7. FAISS インデックス保存
-        save_faiss_index(index, paper_ids)
-        print("FAISS index saved.")
+            primary_kw = extract_primary_keyword(a.get('search_keyword', ''))
+            content = f"{a['title']}\n\n{a['abstract']}"
+            summary = translate_and_summarize(ai_config, content, target_lang)
+            send_notification(
+                f"📄【arXiv】\n🔍 `{primary_kw}`\n"
+                f"*発表日*: {a.get('pub_date')}\n"
+                f"*翻訳要約*\n{summary}\n\n"
+                f"*Title*: {a['title']}\n*URL*: {a['url']}",
+                thread_ts=parent_ts
+            )
 
     except Exception as e:
         error_msg = f"⚠️ 致命的なエラー: {str(e)}"

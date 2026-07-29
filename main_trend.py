@@ -11,7 +11,7 @@ import json
 # 環境変数読み込み
 # load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SEEN_FILE = os.path.join(BASE_DIR, "seen_papers.json")
+SEEN_FILE = os.path.join(BASE_DIR, "seen_papers_trend.json")
 #SEEN_FILE = "seen_papers.json"
 
 def load_seen_papers():

@@ -247,8 +247,7 @@ Citation: {citation_score:.2f}
 save_faiss_index(index, paper_ids)
 print("FAISS index saved.")
 
-# Slack通知（FAISS結果のみ）
-send_faiss_result_to_slack(ai_config, similar_results)
+
 
 
 
@@ -779,7 +778,8 @@ if __name__ == "__main__":
         ai_config = init_ai_client()
         print("DEBUG AI_PROVIDER =", ai_config["provider"])
         print("DEBUG AI_MODEL =", ai_config["model"])
-
+        # Slack通知（FAISS結果のみ）
+        send_faiss_result_to_slack(ai_config, similar_results)
         # 1. PubMed / arXiv の論文を取得
         papers = fetch_pubmed_papers()
         arxiv_papers = fetch_arxiv_papers()

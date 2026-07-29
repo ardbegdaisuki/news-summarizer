@@ -224,19 +224,23 @@ def send_faiss_result_to_slack(ai_config, faiss_results):
 
         # Slackへ送信
         message = f"""
-📘【FAISS 推薦論文】
-Final Score: {final_score:.3f}
-Similarity: {similarity:.3f}
-Novelty: {novelty_score:.2f}
-Recency: {recency_score:.2f}
-Citation: {citation_score:.2f}
-
-{ai_summary}
-
-*Title*: {title}
-*URL*: {url}
-"""
-        send_notification(message, thread_ts=parent_ts)
+        📘【FAISS 推薦論文】
+        Final Score: {final_score:.3f}
+        Similarity: {similarity:.3f}
+        Novelty: {novelty_score:.2f}
+        Recency: {recency_score:.2f}
+        Citation: {citation_score:.2f}
+        
+        *Journal*: {journal}
+        *Published*: {pub_date}
+        
+        {ai_summary}
+        
+        *Title*: {title}
+        *URL*: {url}
+        """
+        
+                send_notification(message, thread_ts=parent_ts)
 
 
 
@@ -792,8 +796,12 @@ if __name__ == "__main__":
                 "id": f"pubmed:{p['pmid']}",
                 "title": p["title"],
                 "abstract": p["abstract"],
-                "url": p["url"]
+                "url": p["url"],
+                "journal": p.get("journal", "Unknown Journal"),
+                "pub_date": p.get("pub_date", "No date"),
+                "citation": 0
             })
+
 
         # arXiv
         for a in arxiv_papers:
@@ -801,8 +809,12 @@ if __name__ == "__main__":
                 "id": a["url"],
                 "title": a["title"],
                 "abstract": a["abstract"],
-                "url": a["url"]
+                "url": a["url"],
+                "journal": "arXiv",
+                "pub_date": a.get("pub_date", "No date"),
+                "citation": 0
             })
+
 
         # FAISS に追加
         for paper in new_papers:
@@ -827,16 +839,18 @@ if __name__ == "__main__":
         # 論文を保存
         for paper in new_papers:
             cur.execute("""
-                INSERT OR REPLACE INTO papers (pid, title, abstract, url, pub_date, citation)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT OR REPLACE INTO papers (pid, title, abstract, url, journal, pub_date, citation)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
             """, (
                 paper["id"],
                 paper["title"],
                 paper["abstract"],
                 paper["url"],
-                paper.get("pub_date", "No date"),
-                paper.get("citation", 0)
+                paper["journal"],
+                paper["pub_date"],
+                paper["citation"]
             ))
+
         
         conn.commit()
         conn.close()

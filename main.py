@@ -25,7 +25,7 @@ def compute_recency_score(pub_date):
     days = (datetime.now() - d).days
     years = days / 365.0
 
-    return 1 / (1 + years)  # 新しいほど 1 に近い
+    return math.exp(-years)
 
 def compute_citation_score(citation_count):
     """引用数から Citation スコアを計算（ログスケール）"""
@@ -44,9 +44,9 @@ def compute_novelty_score(ai_summary_text):
 
 def compute_final_score(similarity, novelty, recency, citation):
     return (
-        0.45 * similarity +
-        0.25 * novelty +
-        0.20 * recency +
+        0.35 * similarity +
+        0.20 * novelty +
+        0.35 * recency +
         0.10 * citation
     )
 

@@ -199,13 +199,15 @@ def send_faiss_result_to_slack(ai_config, faiss_results):
         # SQLite からメタデータ取得
         conn = sqlite3.connect("papers.db")
         cur = conn.cursor()
-        cur.execute("SELECT title, abstract, url, pub_date, citation FROM papers WHERE pid=?", (pid,))
+        cur.execute("SELECT title, abstract, url, pub_date, citation, journal FROM papers WHERE pid=?", (pid,))
         row = cur.fetchone()
-
+        
         if not row:
             continue
+        
+        title, abstract, url, pub_date, citation_count, journal = row
 
-        title, abstract, url, pub_date, citation_count = row
+
 
         # LLMで Summary / Tags / Novelty を生成
         ai_summary = summarize_with_ai(ai_config, title, abstract)

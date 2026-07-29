@@ -126,8 +126,9 @@ def search_similar_papers(query_text, top_k=5):
 # ============================================================
 
 interest_text = """
-Restormer, MDTA, GDFN, PromptIR, MRI画像復元, MoE, Router,
-Degradation-aware learning, Transformer-based image restoration
+normalization
+#Restormer, MDTA, GDFN, PromptIR, MRI画像復元, MoE, Router,
+#Degradation-aware learning, Transformer-based image restoration
 """
 
 # ============================================================

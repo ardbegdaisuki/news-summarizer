@@ -146,39 +146,6 @@ Degradation-aware learning, Transformer-based image restoration
 #   "pdf_url": "..."
 # }
 
-# ============================================================
-# 8. 新しい論文を FAISS に追加
-# ============================================================
-
-for paper in new_papers:
-    add_paper_to_index(paper)
-
-# ============================================================
-# 9. 類似度検索で「読むべき論文」を抽出
-# ============================================================
-
-similar_results = search_similar_papers(interest_text, top_k=5)
-
-# ============================================================
-# 10. Slack通知（既存のロジックをそのまま使う）
-# ============================================================
-
-# 例：敦郎さんの既存 Slack 通知関数
-# send_to_slack(title, abstract, url, score)
-
-for r in similar_results:
-    pid = r["pid"]
-    score = r["score"]
-
-    # SQLite からメタデータ取得（既存のDBを使う）
-    conn = sqlite3.connect("papers.db")
-    cur = conn.cursor()
-    cur.execute("SELECT title, abstract, url FROM papers WHERE pid=?", (pid,))
-    row = cur.fetchone()
-
-    if row:
-        title, abstract, url = row
-        send_to_slack(title, abstract, url, score)
 
 # ============================================================
 # 11. FAISS インデックスを保存（永続化）

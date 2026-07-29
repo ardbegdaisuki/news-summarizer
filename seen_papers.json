@@ -1,15 +1,23 @@
 {
   "pubmed": [
+    "41662552",
     "42487251",
+    "42248205",
+    "42235583",
+    "42277983",
     "42235582",
     "41880246",
-    "42248205"
+    "42272040"
   ],
   "arxiv": [
-    "http://arxiv.org/abs/2607.26004v1",
-    "http://arxiv.org/abs/2607.25622v1",
     "http://arxiv.org/abs/2607.25092v1",
+    "http://arxiv.org/abs/2607.24135v1",
     "http://arxiv.org/abs/2607.25894v1",
-    "http://arxiv.org/abs/2607.24579v1"
+    "http://arxiv.org/abs/2607.25390v1",
+    "http://arxiv.org/abs/2607.24579v1",
+    "http://arxiv.org/abs/2607.25275v1",
+    "http://arxiv.org/abs/2607.24298v1",
+    "http://arxiv.org/abs/2607.25622v1",
+    "http://arxiv.org/abs/2607.26004v1"
   ]
 }

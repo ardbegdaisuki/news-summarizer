@@ -6,6 +6,151 @@ from openai import OpenAI
 import google.generativeai as genai
 from datetime import datetime, timedelta
 import json
+
+
+import sqlite3
+import numpy as np
+import faiss
+from sentence_transformers import SentenceTransformer
+
+# ============================================================
+# 1. FAISS 永続化（保存・読み込み）
+# ============================================================
+
+EMBED_DIM = 384  # MiniLM-L6-v2 の埋め込み次元
+
+def save_faiss_index(index, paper_ids,
+                     index_path="faiss.index",
+                     ids_path="paper_ids.json"):
+    faiss.write_index(index, index_path)
+    with open(ids_path, "w", encoding="utf-8") as f:
+        json.dump(paper_ids, f, ensure_ascii=False, indent=2)
+
+def load_faiss_index(index_path="faiss.index",
+                     ids_path="paper_ids.json"):
+    if not os.path.exists(index_path) or not os.path.exists(ids_path):
+        return None, []
+    index = faiss.read_index(index_path)
+    with open(ids_path, "r", encoding="utf-8") as f:
+        paper_ids = json.load(f)
+    return index, paper_ids
+
+# ============================================================
+# 2. 埋め込みモデル
+# ============================================================
+
+embedder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+
+# ============================================================
+# 3. FAISS インデックス初期化（新規 or 復元）
+# ============================================================
+
+index, paper_ids = load_faiss_index()
+
+if index is None:
+    print("FAISS index not found. Creating new index...")
+    index = faiss.IndexFlatIP(EMBED_DIM)
+    paper_ids = []
+else:
+    print(f"Loaded FAISS index with {len(paper_ids)} papers.")
+
+# ============================================================
+# 4. 論文を FAISS に追加する関数
+# ============================================================
+
+def add_paper_to_index(paper):
+    text = paper["title"] + " " + paper["abstract"]
+    vec = embedder.encode(text, normalize_embeddings=True)
+    vec = np.array([vec]).astype("float32")
+
+    index.add(vec)
+    paper_ids.append(paper["id"])
+
+# ============================================================
+# 5. 類似度検索
+# ============================================================
+
+def search_similar_papers(query_text, top_k=5):
+    vec = embedder.encode(query_text, normalize_embeddings=True)
+    vec = np.array([vec]).astype("float32")
+
+    D, I = index.search(vec, top_k)
+
+    results = []
+    for score, idx in zip(D[0], I[0]):
+        pid = paper_ids[idx]
+        results.append({"pid": pid, "score": float(score)})
+    return results
+
+# ============================================================
+# 6. 敦郎さんの興味プロファイル
+# ============================================================
+
+interest_text = """
+Restormer, MDTA, GDFN, PromptIR, MRI画像復元, MoE, Router,
+Degradation-aware learning, Transformer-based image restoration
+"""
+
+# ============================================================
+# 7. ここから既存の論文取得ロジック（PubMed / arXiv）
+# ============================================================
+
+# 例：敦郎さんの既存コードで new_papers を作っている前提
+# new_papers = fetch_pubmed_and_arxiv()  ← 既存の処理をそのまま使う
+
+# new_papers は以下の形式を想定：
+# {
+#   "id": "arxiv:2401.12345",
+#   "title": "...",
+#   "abstract": "...",
+#   "url": "...",
+#   "pdf_url": "..."
+# }
+
+# ============================================================
+# 8. 新しい論文を FAISS に追加
+# ============================================================
+
+for paper in new_papers:
+    add_paper_to_index(paper)
+
+# ============================================================
+# 9. 類似度検索で「読むべき論文」を抽出
+# ============================================================
+
+similar_results = search_similar_papers(interest_text, top_k=5)
+
+# ============================================================
+# 10. Slack通知（既存のロジックをそのまま使う）
+# ============================================================
+
+# 例：敦郎さんの既存 Slack 通知関数
+# send_to_slack(title, abstract, url, score)
+
+for r in similar_results:
+    pid = r["pid"]
+    score = r["score"]
+
+    # SQLite からメタデータ取得（既存のDBを使う）
+    conn = sqlite3.connect("papers.db")
+    cur = conn.cursor()
+    cur.execute("SELECT title, abstract, url FROM papers WHERE pid=?", (pid,))
+    row = cur.fetchone()
+
+    if row:
+        title, abstract, url = row
+        send_to_slack(title, abstract, url, score)
+
+# ============================================================
+# 11. FAISS インデックスを保存（永続化）
+# ============================================================
+
+save_faiss_index(index, paper_ids)
+print("FAISS index saved.")
+
+
+
+
 # from dotenv import load_dotenv
 
 # 環境変数読み込み

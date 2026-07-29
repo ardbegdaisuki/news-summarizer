@@ -6,7 +6,6 @@ from openai import OpenAI
 import google.generativeai as genai
 from datetime import datetime, timedelta
 import json
-
 # from dotenv import load_dotenv
 
 # 環境変数読み込み
@@ -345,11 +344,11 @@ def fetch_pubmed_papers():
             print(f"PubMed APIエラー (キーワード: {selected_keyword}): {str(e)}")
             continue
 
-    ## --- 🔥 最新5件だけ抽出 ---
-    #final_papers = sorted(all_papers, key=lambda x: normalize_pub_date(x["pub_date"]), reverse=True)[:5]
+    # --- 🔥 最新5件だけ抽出 ---
+    final_papers = sorted(all_papers, key=lambda x: normalize_pub_date(x["pub_date"]), reverse=True)[:5]
 
     # --- 🔥 最新5件だけ保存 ---
-    for p in all_papers:
+    for p in final_papers:
         seen_pubmed.add(p["pmid"])
 
     seen["pubmed"] = list(seen_pubmed)
@@ -438,10 +437,10 @@ def fetch_arxiv_papers():
             continue
 
     # --- 🔥 最新5件だけ抽出 ---
-    #final_papers = sorted(all_papers, key=lambda x: x["pub_date"], reverse=True)[:5]
+    final_papers = sorted(all_papers, key=lambda x: x["pub_date"], reverse=True)[:5]
 
     # --- 🔥 最新5件だけ保存 ---
-    for p in all_papers:
+    for p in final_papers:
         seen_arxiv.add(p["url"])
 
     seen["arxiv"] = list(seen_arxiv)

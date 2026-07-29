@@ -1,0 +1,30 @@
+{
+  "journals": {
+    "medical_imaging": "Medical Physics[Journal] OR Journal of Magnetic Resonance Imaging[Journal] OR Magnetic Resonance in Medicine[Journal] OR Physics in Medicine and Biology[Journal] OR IEEE Transactions on Medical Imaging[Journal]",
+    "medical_physics": "Physics in Medicine and Biology[Journal] OR Medical Physics[Journal] OR Journal of Applied Clinical Medical Physics[Journal]",
+    "radiology": "Radiology[Journal] OR AJR American Journal of Roentgenology[Journal] OR European Radiology[Journal]",
+    "general_medical": "Nature Medicine[Journal] OR Lancet[Journal] OR JAMA[Journal] OR BMJ[Journal]"
+  },
+  "pubmed": [
+    "\"image restoration\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
+    "\"image denoising\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
+    "denoising AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
+    "\"noise reduction\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
+    "\"super resolution\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
+    "deblurring AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
+    "\"image enhancement\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)"
+  ],
+  "arxiv": [
+    "\"image restoration\" AND cs.CV",
+    "\"image denoising\" AND cs.CV",
+    "denoising AND image AND cs.CV",
+    "\"noise reduction\" AND cs.CV AND image",
+    "\"super resolution\" AND cs.CV AND image",
+    "deblurring AND cs.CV AND image",
+    "\"image enhancement\" AND cs.CV"
+  ],
+  "news": [
+    "(AI OR Machine Learning) AND (research OR study)",
+    "(healthcare OR medical) AND (AI OR deep learning)"
+  ]
+}

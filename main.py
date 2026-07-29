@@ -778,8 +778,7 @@ if __name__ == "__main__":
         ai_config = init_ai_client()
         print("DEBUG AI_PROVIDER =", ai_config["provider"])
         print("DEBUG AI_MODEL =", ai_config["model"])
-        # Slack通知（FAISS結果のみ）
-        send_faiss_result_to_slack(ai_config, similar_results)
+
         # 1. PubMed / arXiv の論文を取得
         papers = fetch_pubmed_papers()
         arxiv_papers = fetch_arxiv_papers()
@@ -799,7 +798,7 @@ if __name__ == "__main__":
         # arXiv
         for a in arxiv_papers:
             new_papers.append({
-                "id": a["url"],  # arXiv URL を ID として使う
+                "id": a["url"],
                 "title": a["title"],
                 "abstract": a["abstract"],
                 "url": a["url"]
@@ -809,13 +808,13 @@ if __name__ == "__main__":
         for paper in new_papers:
             add_paper_to_index(paper)
 
-        # 3. 類似度検索（敦郎さんの興味に近い論文を抽出）
+        # 3. 類似度検索
         similar_results = search_similar_papers(interest_text, top_k=5)
 
-        # 4. FAISS 推薦論文だけ Slack に送信
+        # 4. Slack通知（FAISS結果のみ）
         send_faiss_result_to_slack(ai_config, similar_results)
 
-        # 5. FAISS インデックスを保存
+        # 5. FAISS インデックス保存
         save_faiss_index(index, paper_ids)
         print("FAISS index saved.")
 

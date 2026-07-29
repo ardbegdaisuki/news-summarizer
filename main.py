@@ -807,6 +807,39 @@ if __name__ == "__main__":
         # FAISS に追加
         for paper in new_papers:
             add_paper_to_index(paper)
+            
+        # SQLite に保存（FAISS検索で使うメタデータ）
+        conn = sqlite3.connect("papers.db")
+        cur = conn.cursor()
+        
+        # テーブル作成（初回のみ）
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS papers (
+                pid TEXT PRIMARY KEY,
+                title TEXT,
+                abstract TEXT,
+                url TEXT,
+                pub_date TEXT,
+                citation INTEGER
+            )
+        """)
+        
+        # 論文を保存
+        for paper in new_papers:
+            cur.execute("""
+                INSERT OR REPLACE INTO papers (pid, title, abstract, url, pub_date, citation)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                paper["id"],
+                paper["title"],
+                paper["abstract"],
+                paper["url"],
+                paper.get("pub_date", "No date"),
+                paper.get("citation", 0)
+            ))
+        
+        conn.commit()
+        conn.close()
 
         # 3. 類似度検索
         similar_results = search_similar_papers(interest_text, top_k=5)

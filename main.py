@@ -776,13 +776,6 @@ def extract_primary_keyword(query: str) -> str:
     return q
 
 if __name__ == "__main__":
-    # --- SQLite の papers テーブルのスキーマ確認 ---
-    conn = sqlite3.connect("papers.db")
-    cur = conn.cursor()
-    print("DEBUG: papers テーブルのスキーマ:")
-    for row in cur.execute("PRAGMA table_info(papers);"):
-        print(row)
-    conn.close()
     try:
         print("DEBUG SLACK_CHANNEL_ID =", os.getenv("SLACK_CHANNEL_ID"))
         print("DEBUG SLACK_BOT_TOKEN =", os.getenv("SLACK_BOT_TOKEN"))
@@ -790,11 +783,39 @@ if __name__ == "__main__":
         print("DEBUG AI_PROVIDER =", ai_config["provider"])
         print("DEBUG AI_MODEL =", ai_config["model"])
 
+        # --- SQLite テーブルを確実に作成（古いスキーマを消す） ---
+        conn = sqlite3.connect("papers.db")
+        cur = conn.cursor()
+
+        cur.execute("DROP TABLE IF EXISTS papers")
+        cur.execute("""
+            CREATE TABLE papers (
+                pid TEXT PRIMARY KEY,
+                title TEXT,
+                abstract TEXT,
+                url TEXT,
+                journal TEXT,
+                pub_date TEXT,
+                citation INTEGER
+            )
+        """)
+
+        conn.commit()
+        conn.close()
+
+        # --- スキーマ確認 ---
+        conn = sqlite3.connect("papers.db")
+        cur = conn.cursor()
+        print("DEBUG: papers テーブルのスキーマ:")
+        for row in cur.execute("PRAGMA table_info(papers);"):
+            print(row)
+        conn.close()
+
         # 1. PubMed / arXiv の論文を取得
         papers = fetch_pubmed_papers()
         arxiv_papers = fetch_arxiv_papers()
 
-        # 2. 取得した論文を FAISS に追加
+        # 2. new_papers を作成
         new_papers = []
 
         # PubMed
@@ -809,7 +830,6 @@ if __name__ == "__main__":
                 "citation": 0
             })
 
-
         # arXiv
         for a in arxiv_papers:
             new_papers.append({
@@ -822,29 +842,14 @@ if __name__ == "__main__":
                 "citation": 0
             })
 
-
-        # FAISS に追加
+        # 3. FAISS に追加
         for paper in new_papers:
             add_paper_to_index(paper)
-            
-        # --- SQLite に保存（FAISS検索で使うメタデータ） ---
+
+        # 4. SQLite に保存
         conn = sqlite3.connect("papers.db")
         cur = conn.cursor()
-        
-        # テーブル作成（初回のみ）
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS papers (
-                pid TEXT PRIMARY KEY,
-                title TEXT,
-                abstract TEXT,
-                url TEXT,
-                journal TEXT,
-                pub_date TEXT,
-                citation INTEGER
-            )
-        """)
-        
-        # 論文を保存
+
         for paper in new_papers:
             cur.execute("""
                 INSERT OR REPLACE INTO papers (pid, title, abstract, url, journal, pub_date, citation)
@@ -854,22 +859,21 @@ if __name__ == "__main__":
                 paper["title"],
                 paper["abstract"],
                 paper["url"],
-                paper.get("journal", "Unknown"),
-                paper.get("pub_date", "No date"),
-                paper.get("citation", 0)
+                paper["journal"],
+                paper["pub_date"],
+                paper["citation"]
             ))
-        
+
         conn.commit()
         conn.close()
 
-
-        # 3. 類似度検索
+        # 5. 類似度検索
         similar_results = search_similar_papers(interest_text, top_k=5)
 
-        # 4. Slack通知（FAISS結果のみ）
+        # 6. Slack通知（FAISS結果のみ）
         send_faiss_result_to_slack(ai_config, similar_results)
 
-        # 5. FAISS インデックス保存
+        # 7. FAISS インデックス保存
         save_faiss_index(index, paper_ids)
         print("FAISS index saved.")
 

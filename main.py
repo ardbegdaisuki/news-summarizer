@@ -240,7 +240,7 @@ def send_faiss_result_to_slack(ai_config, faiss_results):
         *URL*: {url}
         """
         
-                send_notification(message, thread_ts=parent_ts)
+        send_notification(message, thread_ts=parent_ts)
 
 
 

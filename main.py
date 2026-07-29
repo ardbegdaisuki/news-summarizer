@@ -754,43 +754,45 @@ if __name__ == "__main__":
         print("DEBUG SLACK_CHANNEL_ID =", os.getenv("SLACK_CHANNEL_ID"))
         print("DEBUG SLACK_BOT_TOKEN =", os.getenv("SLACK_BOT_TOKEN"))
         ai_config = init_ai_client()
-        target_lang = os.getenv("TARGET_LANGUAGE", "ja")
 
+        # 1. PubMed / arXiv の論文を取得
         papers = fetch_pubmed_papers()
         arxiv_papers = fetch_arxiv_papers()
-        articles = fetch_ranked_news()
 
-        all_sources = []
-
-        # 🕒 親メッセージ（スレッドの起点）
-        timestamp = (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-        parent_ts = send_notification(f"🕒 *送信日時*: {timestamp}\n\n---")
+        # 2. 取得した論文を FAISS に追加
+        new_papers = []
 
         # PubMed
-        for paper in papers:
-            primary_kw = extract_primary_keyword(paper.get('search_keyword', ''))
-            content = f"{paper['title']}\n\n{paper['abstract']}"
-            summary = translate_and_summarize(ai_config, content, target_lang)
-            send_notification(
-                f"📄【PubMed】\n🔍 `{primary_kw}`\n"
-                f"*雑誌*: {paper.get('journal')}\n*発表日*: {paper.get('pub_date')}\n"
-                f"*翻訳要約*\n{summary}\n\n"
-                f"*Title*: {paper['title']}\n*URL*: {paper['url']}",
-                thread_ts=parent_ts
-            )
+        for p in papers:
+            new_papers.append({
+                "id": f"pubmed:{p['pmid']}",
+                "title": p["title"],
+                "abstract": p["abstract"],
+                "url": p["url"]
+            })
 
         # arXiv
         for a in arxiv_papers:
-            primary_kw = extract_primary_keyword(a.get('search_keyword', ''))
-            content = f"{a['title']}\n\n{a['abstract']}"
-            summary = translate_and_summarize(ai_config, content, target_lang)
-            send_notification(
-                f"📄【arXiv】\n🔍 `{primary_kw}`\n"
-                f"*発表日*: {a.get('pub_date')}\n"
-                f"*翻訳要約*\n{summary}\n\n"
-                f"*Title*: {a['title']}\n*URL*: {a['url']}",
-                thread_ts=parent_ts
-            )
+            new_papers.append({
+                "id": a["url"],  # arXiv URL を ID として使う
+                "title": a["title"],
+                "abstract": a["abstract"],
+                "url": a["url"]
+            })
+
+        # FAISS に追加
+        for paper in new_papers:
+            add_paper_to_index(paper)
+
+        # 3. 類似度検索（敦郎さんの興味に近い論文を抽出）
+        similar_results = search_similar_papers(interest_text, top_k=5)
+
+        # 4. FAISS 推薦論文だけ Slack に送信
+        send_faiss_result_to_slack(ai_config, similar_results)
+
+        # 5. FAISS インデックスを保存
+        save_faiss_index(index, paper_ids)
+        print("FAISS index saved.")
 
     except Exception as e:
         error_msg = f"⚠️ 致命的なエラー: {str(e)}"

@@ -776,6 +776,13 @@ def extract_primary_keyword(query: str) -> str:
     return q
 
 if __name__ == "__main__":
+    # --- SQLite の papers テーブルのスキーマ確認 ---
+    conn = sqlite3.connect("papers.db")
+    cur = conn.cursor()
+    print("DEBUG: papers テーブルのスキーマ:")
+    for row in cur.execute("PRAGMA table_info(papers);"):
+        print(row)
+    conn.close()
     try:
         print("DEBUG SLACK_CHANNEL_ID =", os.getenv("SLACK_CHANNEL_ID"))
         print("DEBUG SLACK_BOT_TOKEN =", os.getenv("SLACK_BOT_TOKEN"))

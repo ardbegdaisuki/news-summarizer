@@ -148,6 +148,84 @@ for r in similar_results:
 save_faiss_index(index, paper_ids)
 print("FAISS index saved.")
 
+# ============================================================
+# 10. FAISS結果を Slack に送る（改善フォーマット）
+# ============================================================
+
+def summarize_with_ai(ai_config, title, abstract):
+    """LLMで Summary / Tags / Novelty を生成する"""
+    prompt = f"""
+以下の論文について、3つの情報を生成してください。
+
+1. Summary（日本語で簡潔に要約）
+2. Tags（技術タグを3〜6個）
+3. Novelty（新規性を1〜5で評価し、理由を1行）
+
+論文タイトル:
+{title}
+
+要旨:
+{abstract}
+"""
+
+    if ai_config["provider"] == "gemini":
+        response = ai_config["client"].generate_content(prompt)
+        text = response.text
+    else:
+        response = ai_config["client"].chat.completions.create(
+            model=ai_config["model"],
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
+        )
+        text = response.choices[0].message.content.strip()
+
+    return text
+
+
+# Slack送信用フォーマット
+def send_faiss_result_to_slack(ai_config, faiss_results):
+    parent_ts = send_notification("🔍 *FAISS による推薦論文（敦郎さんの興味に最も近い論文）*")
+
+    for r in faiss_results:
+        pid = r["pid"]
+        score = r["score"]
+
+        # SQLite からメタデータ取得
+        conn = sqlite3.connect("papers.db")
+        cur = conn.cursor()
+        cur.execute("SELECT title, abstract, url FROM papers WHERE pid=?", (pid,))
+        row = cur.fetchone()
+
+        if not row:
+            continue
+
+        title, abstract, url = row
+
+        # LLMで Summary / Tags / Novelty を生成
+        ai_summary = summarize_with_ai(ai_config, title, abstract)
+
+        # Slackへ送信
+        message = f"""
+📘【FAISS 推薦論文】
+Similarity: {score:.3f}
+
+{ai_summary}
+
+*Title*: {title}
+*URL*: {url}
+"""
+        send_notification(message, thread_ts=parent_ts)
+
+
+# ============================================================
+# 11. FAISS インデックスを保存（永続化）
+# ============================================================
+
+save_faiss_index(index, paper_ids)
+print("FAISS index saved.")
+
+# Slack通知（FAISS結果のみ）
+send_faiss_result_to_slack(ai_config, similar_results)
 
 
 

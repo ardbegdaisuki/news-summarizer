@@ -9,6 +9,11 @@ import json
 # from dotenv import load_dotenv
 import sqlite3
 
+# 環境変数読み込み
+# load_dotenv()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SEEN_FILE = os.path.join(BASE_DIR, "seen_papers_trend.json")
+#SEEN_FILE = "seen_papers.json"
 DB_PATH = os.path.join(BASE_DIR, "papers.db")
 
 def init_db():
@@ -48,25 +53,12 @@ def save_paper_to_db(paper):
     ))
     conn.commit()
     conn.close()
-CREATE TABLE papers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    pid TEXT,              -- PubMed: pmid / arXiv: URL
-    title TEXT,
-    abstract TEXT,
-    journal TEXT,
-    pub_date TEXT,
-    source TEXT,           -- pubmed / arxiv
-    search_keyword TEXT,
-    created_at TEXT
-);
 
 
 
-# 環境変数読み込み
-# load_dotenv()
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SEEN_FILE = os.path.join(BASE_DIR, "seen_papers_trend.json")
-#SEEN_FILE = "seen_papers.json"
+
+
+
 
 def load_seen_papers():
     if not os.path.exists(SEEN_FILE):
@@ -582,17 +574,15 @@ def extract_primary_keyword(query: str) -> str:
 
 if __name__ == "__main__":
     try:
-        print("DEBUG SLACK_CHANNEL_ID =", os.getenv("SLACK_CHANNEL_ID"))
-        print("DEBUG SLACK_BOT_TOKEN =", os.getenv("SLACK_BOT_TOKEN"))
         ai_config = init_ai_client()
         target_lang = os.getenv("TARGET_LANGUAGE", "ja")
 
         papers = fetch_pubmed_papers()
         arxiv_papers = fetch_arxiv_papers()
-        articles = fetch_ranked_news()
+
         # --- SQLite 初期化 ---
         init_db()
-        
+
         # --- PubMed 保存 ---
         for p in papers:
             save_paper_to_db({
@@ -604,11 +594,11 @@ if __name__ == "__main__":
                 "source": "pubmed",
                 "search_keyword": p["search_keyword"]
             })
-        
+
         # --- arXiv 保存 ---
         for a in arxiv_papers:
             save_paper_to_db({
-                "pid": a["url"],  # arXivはURLをIDとして使う
+                "pid": a["url"],
                 "title": a["title"],
                 "abstract": a["abstract"],
                 "journal": ", ".join(a.get("authors", [])),
@@ -617,9 +607,7 @@ if __name__ == "__main__":
                 "search_keyword": a["search_keyword"]
             })
 
-
-
     except Exception as e:
-        error_msg = f"⚠️ 致命的なエラー: {str(e)}"
-        print(error_msg)
+        print(f"⚠️ 致命的なエラー: {str(e)}")
+
 

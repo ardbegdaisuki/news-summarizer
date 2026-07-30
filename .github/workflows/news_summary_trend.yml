@@ -73,8 +73,25 @@ jobs:
 
           # push（--force は不要）
           git push origin main
-      - name: Debug files
-        run: |
+          echo "PWD"
           pwd
-          ls -la
+      
+          echo "STATUS BEFORE"
+          git status
+      
+          echo "FILES"
           find . -name "seen_papers_trend.json"
+          find . -name "papers.db"
+      
+          git add -A
+      
+          echo "STATUS AFTER ADD"
+          git status
+      
+          echo "CACHED DIFF"
+          git diff --cached
+      
+          git commit -m "Update papers" || echo "No changes"
+      
+          git push
+          

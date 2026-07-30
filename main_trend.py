@@ -31,19 +31,19 @@ def export_papers_to_obsidian():
         filename = safe_filename(pid)
         filepath = os.path.join(OBSIDIAN_DIR, filename)
 
-        md = f"""# {title}
-
-**Source**: {source}  
-**PID**: {pid}  
-**Journal**: {journal}  
-**Published**: {pub_date}  
-**Keyword**: `{keyword}`  
-
+md = f"""---
+pid: {pid}
+source: {source}
+journal: "{journal}"
+pub_date: {pub_date}
+keyword: "{keyword}"
 ---
 
-## Abstract
-{abstract}
+# {title}
 
+## Abstract
+
+{abstract}
 """
 
         with open(filepath, "w") as f:

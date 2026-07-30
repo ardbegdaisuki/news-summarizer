@@ -28,7 +28,7 @@ def export_papers_to_obsidian():
     conn.close()
 
     for pid, title, abstract, journal, pub_date, source, keyword in rows:
-        filename = f"{pid}.md"
+        filename = safe_filename(pid)
         filepath = os.path.join(OBSIDIAN_DIR, filename)
 
         md = f"""# {title}
@@ -48,6 +48,17 @@ def export_papers_to_obsidian():
 
         with open(filepath, "w") as f:
             f.write(md)
+            
+def safe_filename(pid: str) -> str:
+    """
+    arXiv URL や PubMed URL を安全なファイル名に変換する
+    """
+    # arXiv の場合: https://arxiv.org/abs/2606.30049v1 → 2606.30049v1
+    if "arxiv.org" in pid:
+        return pid.split("/")[-1] + ".md"
+
+    # PubMed の場合はそのまま
+    return pid + ".md"
             
 def init_db():
     conn = sqlite3.connect(DB_PATH)

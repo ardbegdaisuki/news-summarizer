@@ -590,18 +590,17 @@ def extract_primary_keyword(query: str) -> str:
     return q
 
 if __name__ == "__main__":
+    try:
+        ...
+        export_papers_to_obsidian()
 
-    init_db()
+        print("===== export finished =====")
 
-    papers = fetch_pubmed_papers()
-    arxiv = fetch_arxiv_papers()
+    except Exception as e:
+        import traceback
 
-    for p in papers:
-        save_paper_to_db(...)
-
-    for p in arxiv:
-        save_paper_to_db(...)
-
-    export_papers_to_obsidian()
+        print("######## ERROR ########")
+        traceback.print_exc()
+        raise
 
 

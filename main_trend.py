@@ -15,7 +15,40 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SEEN_FILE = os.path.join(BASE_DIR, "seen_papers_trend.json")
 #SEEN_FILE = "seen_papers.json"
 DB_PATH = os.path.join(BASE_DIR, "papers.db")
+OBSIDIAN_DIR = os.path.join(BASE_DIR, "obsidian_vault", "papers")  # 保存先フォルダ
 
+def export_papers_to_obsidian():
+    os.makedirs(OBSIDIAN_DIR, exist_ok=True)
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("SELECT pid, title, abstract, journal, pub_date, source, search_keyword FROM papers ORDER BY id DESC")
+    rows = cur.fetchall()
+    conn.close()
+
+    for pid, title, abstract, journal, pub_date, source, keyword in rows:
+        filename = f"{pid}.md"
+        filepath = os.path.join(OBSIDIAN_DIR, filename)
+
+        md = f"""# {title}
+
+**Source**: {source}  
+**PID**: {pid}  
+**Journal**: {journal}  
+**Published**: {pub_date}  
+**Keyword**: `{keyword}`  
+
+---
+
+## Abstract
+{abstract}
+
+"""
+
+        with open(filepath, "w") as f:
+            f.write(md)
+            
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
@@ -611,7 +644,7 @@ if __name__ == "__main__":
                 "source": "arxiv",
                 "search_keyword": a["search_keyword"]
             })
-
+        export_papers_to_obsidian()
     except Exception as e:
         print(f"⚠️ 致命的なエラー: {str(e)}")
 

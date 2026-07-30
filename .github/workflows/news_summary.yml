@@ -64,14 +64,17 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-      
-          git fetch origin main
-          git checkout -B main origin/main
+          git add seen_papers.json
+          git commit -m "Update seen_papers.json [auto]" || echo "No changes"
+          git push origin main
+          
+          #git fetch origin main
+          #git checkout -B main origin/main
 
-          if [ -f seen_papers.json ]; then
-            git add seen_papers.json
-            git commit -m "Update seen_papers.json [auto]" || echo "No changes to commit"
+          #if [ -f seen_papers.json ]; then
+          #  git add seen_papers.json
+          #  git commit -m "Update seen_papers.json [auto]" || echo "No changes to commit"
 
-            # 🔥 fast-forward できなくても必ず push する
-            git push origin main --force
-          fi
+          #  # 🔥 fast-forward できなくても必ず push する
+          #  git push origin main --force
+          #fi

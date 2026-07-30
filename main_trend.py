@@ -2,8 +2,7 @@ import time
 import os
 import requests
 import xml.etree.ElementTree as ET
-from openai import OpenAI
-import google.generativeai as genai
+
 from datetime import datetime, timedelta
 import json
 # from dotenv import load_dotenv
@@ -225,31 +224,7 @@ def get_model_name(provider: str) -> str:
         #"gemini": os.getenv("GEMINI_MODEL", "gemini-1.0-pro"),
     }.get(provider.lower())
 
-def init_ai_client():
-    """AIクライアント初期化（モデル選択対応版）"""
-    if os.getenv("DEEPSEEK_API_KEY"):
-        return {
-            "client": OpenAI(
-                api_key=os.getenv("DEEPSEEK_API_KEY"),
-                base_url="https://api.deepseek.com/v1"
-            ),
-            "model": "deepseek-chat",
-            "provider": "deepseek"
-        }
-    elif os.getenv("OPENAI_API_KEY"):
-        return {
-            "client": OpenAI(api_key=os.getenv("OPENAI_API_KEY")),
-            "model": get_model_name("openai"),
-            "provider": "openai"
-        }
-    elif os.getenv("GEMINI_API_KEY"):
-        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-        return {
-            "client": genai.GenerativeModel(get_model_name("gemini")),
-            "model": get_model_name("gemini"),
-            "provider": "gemini"
-        }
-    raise RuntimeError("有効なAI APIキーが設定されていません")
+
 
 def fetch_news():
     """NewsAPIから24時間以内の記事を取得"""
@@ -554,24 +529,7 @@ def fetch_arxiv_papers():
     return final_papers
 
         
-def translate_and_summarize(ai_config: dict, text: str, target_lang: str = "ja") -> str:
-    """翻訳&要約（要約だけを返す。雑誌名/日付は外で使う）"""
-    prompt = f"""以下の原文について、{target_lang}で、どのような研究かを理解できるようなタイトルを記述し、次に、課題が何か、その課題をどうやって解決したか、新規性、limitation、残課題、を専門外の人でもわかるようにまとめてください。雑誌名や発表日は出力しないでください。箇条書きやヘッダは不要[...]
 
-原文:
-{text}
-"""
-    if ai_config["provider"] == "gemini":
-        response = ai_config["client"].generate_content(prompt)
-        # gemini のレスポンス取得方法に合わせて要約テキストを返す
-        return response.text if hasattr(response, "text") else str(response)
-    else:
-        response = ai_config["client"].chat.completions.create(
-            model=ai_config["model"],
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3
-        )
-        return response.choices[0].message.content.strip()
 
 def send_notification(message: str, thread_ts: str = None):
     slack_token = os.getenv("SLACK_BOT_TOKEN")

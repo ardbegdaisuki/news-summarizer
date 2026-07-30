@@ -60,18 +60,17 @@ jobs:
           TARGET_LANGUAGE: ${{ secrets.TARGET_LANGUAGE || 'ja' }}
 
         run: python main_trend.py
-      - name: Save seen_papers_trend.json to repository
+      - name: Save seen_papers_trend.json and papers.db to repository
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-      
-          git fetch origin main
-          git checkout -B main origin/main
 
-          if [ -f seen_papers_trend.json ]; then
-            git add seen_papers_trend.json
-            git commit -m "Update seen_papers_trend.json [auto]" || echo "No changes to commit"
+          # 変更をステージング
+          git add seen_papers_trend.json papers.db || true
 
-            # 🔥 fast-forward できなくても必ず push する
-            git push origin main --force
-          fi
+          # 変更があればコミット
+          git commit -m "Update papers and seen list [auto]" || echo "No changes to commit"
+
+          # push（--force は不要）
+          git push origin main
+

@@ -622,6 +622,7 @@ if __name__ == "__main__":
                 "search_keyword": a["search_keyword"]
             })
         export_papers_to_obsidian()
-    except Exception as e:
-        print(f"⚠️ 致命的なエラー: {str(e)}")
+    except Exception:
+        traceback.print_exc()
+        raise
 

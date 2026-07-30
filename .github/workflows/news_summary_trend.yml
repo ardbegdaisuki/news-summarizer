@@ -62,29 +62,7 @@ jobs:
           TARGET_LANGUAGE: ${{ secrets.TARGET_LANGUAGE || 'ja' }}
 
         run: python main_trend.py
-      - name: Check SQLite content
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y sqlite3
-          echo "===== SQLite COUNT ====="
-          sqlite3 papers.db "SELECT COUNT(*) FROM papers;"
-      - name: Check gitignore
-        run: |
-          echo "===== GITIGNORE ====="
-          cat .gitignore || true
-      
-          echo "===== CHECK IGNORE ====="
-          git check-ignore -v obsidian_vault/papers/*.md || true      
-      - name: Check ignore
-        run: |
-          echo "===== GITIGNORE ====="
-          cat .gitignore || true
-      
-          echo "===== CHECK IGNORE ====="
-          git check-ignore -v obsidian_vault/papers/42176781.md || echo "NOT IGNORED"
-      
-          echo "===== TRACKED FILES ====="
-          git ls-files obsidian_vault
+
       - name: Save repository
         run: |          
           git config --global user.name "github-actions"
@@ -97,35 +75,5 @@ jobs:
       
           git push origin main     
           
-      #- name: Save seen_papers_trend.json and papers.db to repository
-      #  run: |
-      #    git config --global user.name "github-actions"
-      #    git config --global user.email "github-actions@github.com"
-      
-      #    echo "===== PWD ====="
-      #    pwd
-      
-      #    echo "===== FILES ====="
-      #    find . -name "seen_papers_trend.json"
-      #    find . -name "papers.db"
-      
-      #    echo "===== STATUS BEFORE ====="
-      #    git status
-      
-      #    echo "===== ADD ====="
-      #    git add seen_papers_trend.json papers.db
-          
-      #    find obsidian_vault/papers -name "*.md" -print -exec git add {} \;
-      #    git diff --cached --name-status
-      #    echo "===== STATUS AFTER ADD ====="
-      #    git status
-      
-      #    echo "===== CACHED DIFF ====="
-      #    git diff --cached
-      
-      #    echo "===== COMMIT ====="
-      #    git commit -m "Update papers and seen list [auto]" || echo "No changes to commit"
-      
-       #   echo "===== PUSH ====="
-       #   git push origin main
+ 
 

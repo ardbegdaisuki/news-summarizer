@@ -7,6 +7,60 @@ import google.generativeai as genai
 from datetime import datetime, timedelta
 import json
 # from dotenv import load_dotenv
+import sqlite3
+
+DB_PATH = os.path.join(BASE_DIR, "papers.db")
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS papers (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pid TEXT,
+            title TEXT,
+            abstract TEXT,
+            journal TEXT,
+            pub_date TEXT,
+            source TEXT,
+            search_keyword TEXT,
+            created_at TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def save_paper_to_db(paper):
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO papers
+        (pid, title, abstract, journal, pub_date, source, search_keyword, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    """, (
+        paper["pid"],
+        paper["title"],
+        paper["abstract"],
+        paper.get("journal", ""),
+        paper["pub_date"],
+        paper["source"],
+        paper["search_keyword"]
+    ))
+    conn.commit()
+    conn.close()
+CREATE TABLE papers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    pid TEXT,              -- PubMed: pmid / arXiv: URL
+    title TEXT,
+    abstract TEXT,
+    journal TEXT,
+    pub_date TEXT,
+    source TEXT,           -- pubmed / arxiv
+    search_keyword TEXT,
+    created_at TEXT
+);
+
+
 
 # 環境変数読み込み
 # load_dotenv()
@@ -536,6 +590,32 @@ if __name__ == "__main__":
         papers = fetch_pubmed_papers()
         arxiv_papers = fetch_arxiv_papers()
         articles = fetch_ranked_news()
+        # --- SQLite 初期化 ---
+        init_db()
+        
+        # --- PubMed 保存 ---
+        for p in papers:
+            save_paper_to_db({
+                "pid": p["pmid"],
+                "title": p["title"],
+                "abstract": p["abstract"],
+                "journal": p["journal"],
+                "pub_date": p["pub_date"],
+                "source": "pubmed",
+                "search_keyword": p["search_keyword"]
+            })
+        
+        # --- arXiv 保存 ---
+        for a in arxiv_papers:
+            save_paper_to_db({
+                "pid": a["url"],  # arXivはURLをIDとして使う
+                "title": a["title"],
+                "abstract": a["abstract"],
+                "journal": ", ".join(a.get("authors", [])),
+                "pub_date": a["pub_date"],
+                "source": "arxiv",
+                "search_keyword": a["search_keyword"]
+            })
 
         all_sources = []
 

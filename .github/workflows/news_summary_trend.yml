@@ -64,34 +64,29 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-
-          # 変更をステージング
-          git add seen_papers_trend.json papers.db || true
-
-          # 変更があればコミット
-          git commit -m "Update papers and seen list [auto]" || echo "No changes to commit"
-
-          # push（--force は不要）
-          git push origin main
-          echo "PWD"
+      
+          echo "===== PWD ====="
           pwd
       
-          echo "STATUS BEFORE"
-          git status
-      
-          echo "FILES"
+          echo "===== FILES ====="
           find . -name "seen_papers_trend.json"
           find . -name "papers.db"
       
-          git add -A
-      
-          echo "STATUS AFTER ADD"
+          echo "===== STATUS BEFORE ====="
           git status
       
-          echo "CACHED DIFF"
+          echo "===== ADD ====="
+          git add -A
+      
+          echo "===== STATUS AFTER ADD ====="
+          git status
+      
+          echo "===== CACHED DIFF ====="
           git diff --cached
       
-          git commit -m "Update papers" || echo "No changes"
+          echo "===== COMMIT ====="
+          git commit -m "Update papers and seen list [auto]" || echo "No changes to commit"
       
-          git push
+          echo "===== PUSH ====="
+          git push origin main
           

@@ -31,12 +31,12 @@ def export_papers_to_obsidian():
         filepath = os.path.join(OBSIDIAN_DIR, filename)
 
         md = f"""---
-pid: "{pid}"
-source: "{source}"
-journal: "{journal}"
-pub_date: "{pub_date}"
+pid: {json.dumps(pid)}
+source: {json.dumps(source)}
+journal: {json.dumps(journal)}
+pub_date: {json.dumps(pub_date)}
 
-search_keyword: "{keyword}"
+search_keyword: {json.dumps(keyword)}
 
 keywords: []
 modality: []

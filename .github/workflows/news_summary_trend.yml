@@ -68,6 +68,15 @@ jobs:
           sudo apt-get install -y sqlite3
           echo "===== SQLite COUNT ====="
           sqlite3 papers.db "SELECT COUNT(*) FROM papers;"
+      - name: Check gitignore
+        run: |
+          echo "===== GITIGNORE ====="
+          cat .gitignore || true
+      
+          echo "===== CHECK IGNORE ====="
+          git check-ignore -v obsidian_vault/papers/*.md || true      
+
+          
       - name: Save seen_papers_trend.json and papers.db to repository
         run: |
           git config --global user.name "github-actions"
@@ -100,10 +109,4 @@ jobs:
       
           echo "===== PUSH ====="
           git push origin main
-      - name: Check gitignore
-        run: |
-          echo "===== GITIGNORE ====="
-          cat .gitignore || true
-      
-          echo "===== CHECK IGNORE ====="
-          git check-ignore -v obsidian_vault/papers/*.md || true      
+

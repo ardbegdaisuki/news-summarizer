@@ -73,4 +73,8 @@ jobs:
 
           # push（--force は不要）
           git push origin main
-
+      - name: Debug files
+        run: |
+          pwd
+          ls -la
+          find . -name "seen_papers_trend.json"

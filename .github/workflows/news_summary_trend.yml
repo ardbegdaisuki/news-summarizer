@@ -85,36 +85,47 @@ jobs:
       
           echo "===== TRACKED FILES ====="
           git ls-files obsidian_vault
-          
-      - name: Save seen_papers_trend.json and papers.db to repository
-        run: |
+      - name: Save repository
+        run: |          
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
       
-          echo "===== PWD ====="
-          pwd
-      
-          echo "===== FILES ====="
-          find . -name "seen_papers_trend.json"
-          find . -name "papers.db"
-      
-          echo "===== STATUS BEFORE ====="
-          git status
-      
-          echo "===== ADD ====="
           git add seen_papers_trend.json papers.db
-          
-          find obsidian_vault/papers -name "*.md" -print -exec git add {} \;
-          git diff --cached --name-status
-          echo "===== STATUS AFTER ADD ====="
-          git status
+          find obsidian_vault/papers -name "*.md" -exec git add {} \;
       
-          echo "===== CACHED DIFF ====="
-          git diff --cached
-      
-          echo "===== COMMIT ====="
           git commit -m "Update papers and seen list [auto]" || echo "No changes to commit"
       
-          echo "===== PUSH ====="
-          git push origin main
+          git push origin main     
+          
+      #- name: Save seen_papers_trend.json and papers.db to repository
+      #  run: |
+      #    git config --global user.name "github-actions"
+      #    git config --global user.email "github-actions@github.com"
+      
+      #    echo "===== PWD ====="
+      #    pwd
+      
+      #    echo "===== FILES ====="
+      #    find . -name "seen_papers_trend.json"
+      #    find . -name "papers.db"
+      
+      #    echo "===== STATUS BEFORE ====="
+      #    git status
+      
+      #    echo "===== ADD ====="
+      #    git add seen_papers_trend.json papers.db
+          
+      #    find obsidian_vault/papers -name "*.md" -print -exec git add {} \;
+      #    git diff --cached --name-status
+      #    echo "===== STATUS AFTER ADD ====="
+      #    git status
+      
+      #    echo "===== CACHED DIFF ====="
+      #    git diff --cached
+      
+      #    echo "===== COMMIT ====="
+      #    git commit -m "Update papers and seen list [auto]" || echo "No changes to commit"
+      
+       #   echo "===== PUSH ====="
+       #   git push origin main
 

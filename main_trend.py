@@ -31,29 +31,29 @@ def export_papers_to_obsidian():
         filepath = os.path.join(OBSIDIAN_DIR, filename)
 
         md = f"""---
-        pid: "{pid}"
-        source: "{source}"
-        journal: "{journal}"
-        pub_date: "{pub_date}"
-        
-        search_keyword: "{keyword}"
-        
-        keywords: []
-        modality: []
-        application: []
-        network: []
-        organ: []
-        research_type: []
-        
-        processed: false
-        ---
-        
-        # {title}
-        
-        ## Abstract
-        
-        {abstract}
-        """
+pid: "{pid}"
+source: "{source}"
+journal: "{journal}"
+pub_date: "{pub_date}"
+
+search_keyword: "{keyword}"
+
+keywords: []
+modality: []
+application: []
+network: []
+organ: []
+research_type: []
+
+processed: false
+---
+
+# {title}
+
+## Abstract
+
+{abstract}
+"""
 
         with open(filepath, "w") as f:
             f.write(md)
@@ -591,16 +591,37 @@ def extract_primary_keyword(query: str) -> str:
 
 if __name__ == "__main__":
     try:
-        ...
+
+        papers = fetch_pubmed_papers()
+        arxiv_papers = fetch_arxiv_papers()
+
+        # --- SQLite 初期化 ---
+        init_db()
+
+        # --- PubMed 保存 ---
+        for p in papers:
+            save_paper_to_db({
+                "pid": p["pmid"],
+                "title": p["title"],
+                "abstract": p["abstract"],
+                "journal": p["journal"],
+                "pub_date": p["pub_date"],
+                "source": "pubmed",
+                "search_keyword": p["search_keyword"]
+            })
+
+        # --- arXiv 保存 ---
+        for a in arxiv_papers:
+            save_paper_to_db({
+                "pid": a["url"],
+                "title": a["title"],
+                "abstract": a["abstract"],
+                "journal": ", ".join(a.get("authors", [])),
+                "pub_date": a["pub_date"],
+                "source": "arxiv",
+                "search_keyword": a["search_keyword"]
+            })
         export_papers_to_obsidian()
-
-        print("===== export finished =====")
-
     except Exception as e:
-        import traceback
-
-        print("######## ERROR ########")
-        traceback.print_exc()
-        raise
-
+        print(f"⚠️ 致命的なエラー: {str(e)}")
 

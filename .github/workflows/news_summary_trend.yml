@@ -75,7 +75,16 @@ jobs:
       
           echo "===== CHECK IGNORE ====="
           git check-ignore -v obsidian_vault/papers/*.md || true      
-
+      - name: Check ignore
+        run: |
+          echo "===== GITIGNORE ====="
+          cat .gitignore || true
+      
+          echo "===== CHECK IGNORE ====="
+          git check-ignore -v obsidian_vault/papers/42176781.md || echo "NOT IGNORED"
+      
+          echo "===== TRACKED FILES ====="
+          git ls-files obsidian_vault
           
       - name: Save seen_papers_trend.json and papers.db to repository
         run: |

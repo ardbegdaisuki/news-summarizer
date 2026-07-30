@@ -104,9 +104,8 @@ jobs:
           echo "===== ADD ====="
           git add seen_papers_trend.json papers.db
           
-          git add -A obsidian_vault || true
-
-
+          find obsidian_vault/papers -name "*.md" -print -exec git add {} \;
+          git diff --cached --name-status
           echo "===== STATUS AFTER ADD ====="
           git status
       

@@ -399,7 +399,8 @@ def fetch_pubmed_papers():
     print("[DEBUG] 最終PubMed:", len(final_papers))
     for p in final_papers:
         seen_pubmed.add(p["pmid"])
-
+    print("SEEN_FILE =", SEEN_FILE)
+    print("exists =", os.path.exists(SEEN_FILE))
     seen["pubmed"] = list(seen_pubmed)
     save_seen_papers(seen)
     print("[DEBUG] save_seen_papers()")

@@ -62,10 +62,10 @@ jobs:
         run: python main_trend.py
       - name: Check SQLite content
         run: |
-            sudo apt-get update
-            sudo apt-get install -y sqlite3
-            echo "===== SQLite COUNT ====="
-            sqlite3 papers.db "SELECT COUNT(*) FROM papers;"
+          sudo apt-get update
+          sudo apt-get install -y sqlite3
+          echo "===== SQLite COUNT ====="
+          sqlite3 papers.db "SELECT COUNT(*) FROM papers;"
       - name: Save seen_papers_trend.json and papers.db to repository
         run: |
           git config --global user.name "github-actions"

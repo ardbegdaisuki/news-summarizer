@@ -30,30 +30,30 @@ def export_papers_to_obsidian():
         filename = safe_filename(pid)
         filepath = os.path.join(OBSIDIAN_DIR, filename)
 
-md = f"""---
-pid: "{pid}"
-source: "{source}"
-journal: "{journal}"
-pub_date: "{pub_date}"
-
-search_keyword: "{keyword}"
-
-keywords: []
-modality: []
-application: []
-network: []
-organ: []
-research_type: []
-
-processed: false
----
-
-# {title}
-
-## Abstract
-
-{abstract}
-"""
+        md = f"""---
+        pid: "{pid}"
+        source: "{source}"
+        journal: "{journal}"
+        pub_date: "{pub_date}"
+        
+        search_keyword: "{keyword}"
+        
+        keywords: []
+        modality: []
+        application: []
+        network: []
+        organ: []
+        research_type: []
+        
+        processed: false
+        ---
+        
+        # {title}
+        
+        ## Abstract
+        
+        {abstract}
+        """
 
         with open(filepath, "w") as f:
             f.write(md)

@@ -6,13 +6,13 @@
     "general_medical": "Nature Medicine[Journal] OR Lancet[Journal] OR JAMA[Journal] OR BMJ[Journal]"
   },
   "pubmed": [
-    "\"image restoration\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
-    "\"image denoising\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
-    "denoising AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
-    "\"noise reduction\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
-    "\"super resolution\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
-    "deblurring AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)",
-    "\"image enhancement\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)"
+    "\"image restoration\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND "medical_imaging"",
+    "\"image denoising\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND "medical_imaging"",
+    "denoising AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND "medical_imaging"",
+    "\"noise reduction\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND "medical_imaging"",
+    "\"super resolution\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND "medical_imaging"",
+    "deblurring AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND "medical_imaging"",
+    "\"image enhancement\" AND (deep learning OR machine learning) AND (magnetic resonance imaging OR MRI) AND "medical_imaging""
   ],
   "arxiv": [
     "\"image restoration\" AND cs.CV",

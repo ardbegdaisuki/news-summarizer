@@ -64,9 +64,7 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add seen_papers_trend.json papers.db
-          git commit -m "Update papers and seen list [auto]" || echo "No changes"
-          git push origin main
+      
           echo "===== PWD ====="
           pwd
       
@@ -78,7 +76,7 @@ jobs:
           git status
       
           echo "===== ADD ====="
-          git add -A
+          git add seen_papers_trend.json papers.db
       
           echo "===== STATUS AFTER ADD ====="
           git status

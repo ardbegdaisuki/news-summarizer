@@ -244,102 +244,147 @@ def fetch_pubmed_papers():
             if not pmids:
                 continue
 
-            #selected_pmids = pmids[:select_top_n]
-            selected_pmids = pmids
-            # --- EFetch ---
-            for pmid in selected_pmids:
-
-                # 🔥 重複チェック（過去に出力済みならスキップ）
-                if pmid in seen_pubmed:
-                    continue
-
-                fetch_params = {
-                    "db": "pubmed",
-                    "id": pmid,
-                    "rettype": "abstract",
-                    "retmode": "xml",
-                    "tool": "news-summarizer",
-                    "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
-                }
-
-                time.sleep(0.34)
-                fetch_response = requests.get(
-                    "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
-                    params=fetch_params
+    BATCH_SIZE = 50
+    
+    # 未取得PMIDだけ残す
+    new_pmids = [p for p in selected_pmids if p not in seen_pubmed]
+    
+    for i in range(0, len(new_pmids), BATCH_SIZE):
+    
+        batch = new_pmids[i:i+BATCH_SIZE]
+    
+        ids = ",".join(batch)
+    
+        fetch_params = {
+            "db": "pubmed",
+            "id": ids,
+            "rettype": "abstract",
+            "retmode": "xml",
+            "tool": "news-summarizer",
+            "email": os.getenv("PUBMED_EMAIL", "your-email@example.com")
+        }
+    
+        try:
+    
+            time.sleep(0.34)
+    
+            fetch_response = requests.get(
+                "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi",
+                params=fetch_params,
+                timeout=30
+            )
+    
+            fetch_response.raise_for_status()
+    
+            root = ET.fromstring(fetch_response.text)
+    
+        except Exception as e:
+            print(f"[WARNING] EFetch失敗: {e}")
+            continue
+    
+        for pubmed_article in root.findall(".//PubmedArticle"):
+    
+            article = pubmed_article.find("MedlineCitation")
+            if article is None:
+                continue
+    
+            pmid_elem = article.find(".//PMID")
+            if pmid_elem is None:
+                continue
+    
+            pmid = pmid_elem.text
+    
+            title_elem = article.find(".//ArticleTitle")
+    
+            # ---------- Abstract ----------
+            abstract_texts = []
+    
+            for abstract_part in article.findall(".//Abstract/AbstractText"):
+                text = "".join(abstract_part.itertext()).strip()
+    
+                label = abstract_part.get("Label")
+    
+                if label:
+                    abstract_texts.append(f"{label}: {text}")
+                else:
+                    abstract_texts.append(text)
+    
+            abstract = "\n".join(abstract_texts)
+    
+            if abstract == "":
+                abstract = "No abstract available"
+    
+            # ---------- Journal ----------
+            journal_elem = article.find(".//Journal/Title")
+            journal = journal_elem.text if journal_elem is not None else "No journal"
+    
+            # ---------- Date ----------
+            pub_date = "No date"
+    
+            article_elem = article.find("Article")
+    
+            if article_elem is not None:
+    
+                article_date_elem = article_elem.find(
+                    "ArticleDate[@DateType='Electronic']"
                 )
-                fetch_response.raise_for_status()
-
-                root = ET.fromstring(fetch_response.text)
-
-                for pubmed_article in root.findall(".//PubmedArticle"):
-                    article = pubmed_article.find("MedlineCitation")
-                    if article is None:
-                        continue
-
-                    pmid_elem = article.find(".//PMID")
-                    title_elem = article.find(".//ArticleTitle")
-
-                    # Abstract
-                    abstract_texts = []
-                    for abstract_part in article.findall(".//Abstract/AbstractText"):
-                        text = "".join(abstract_part.itertext()).strip()
-                        label = abstract_part.get("Label")
-                        abstract_texts.append(f"{label}: {text}" if label else text)
-                    abstract = "\n".join(abstract_texts) if abstract_texts else "No abstract available"
-
-                    # Journal
-                    journal_elem = article.find(".//Journal/Title")
-                    journal = journal_elem.text if journal_elem is not None else "No journal"
-
-                    # --- 発表日の取得 ---
-                    pub_date = "No date"
-
-                    # ① ArticleDate（Electronic）
-                    article_elem = article.find("Article")
-                    if article_elem is not None:
-                        article_date_elem = article_elem.find("ArticleDate[@DateType='Electronic']")
-                        if article_date_elem is not None:
-                            year = article_date_elem.findtext("Year")
-                            month = article_date_elem.findtext("Month")
-                            day = article_date_elem.findtext("Day")
-                            if year:
-                                pub_date = f"{year}-{month or ''}-{day or ''}".strip("-")
-
-                    # ② JournalIssue → PubDate
+    
+                if article_date_elem is not None:
+    
+                    year = article_date_elem.findtext("Year")
+                    month = article_date_elem.findtext("Month")
+                    day = article_date_elem.findtext("Day")
+    
+                    if year:
+                        pub_date = f"{year}-{month or ''}-{day or ''}".strip("-")
+    
+            if pub_date == "No date":
+    
+                journal_issue_elem = article.find(
+                    "Article/Journal/JournalIssue/PubDate"
+                )
+    
+                if journal_issue_elem is not None:
+    
+                    year = journal_issue_elem.findtext("Year")
+                    month = journal_issue_elem.findtext("Month")
+                    day = journal_issue_elem.findtext("Day")
+    
+                    if year:
+    
+                        if month and day:
+                            pub_date = f"{year}-{month}-{day}"
+    
+                        elif month:
+                            pub_date = f"{year}-{month}"
+    
+                        else:
+                            pub_date = year
+    
                     if pub_date == "No date":
-                        journal_issue_elem = article.find("Article/Journal/JournalIssue/PubDate")
-                        if journal_issue_elem is not None:
-                            year = journal_issue_elem.findtext("Year")
-                            month = journal_issue_elem.findtext("Month")
-                            day = journal_issue_elem.findtext("Day")
-
-                            if year:
-                                if month and day:
-                                    pub_date = f"{year}-{month}-{day}"
-                                elif month:
-                                    pub_date = f"{year}-{month}"
-                                else:
-                                    pub_date = year
-
-                    # ③ MedlineDate
-                    if pub_date == "No date":
-                        medline = journal_issue_elem.findtext("MedlineDate") if journal_issue_elem is not None else None
+                        medline = journal_issue_elem.findtext("MedlineDate")
                         if medline:
                             pub_date = medline
-
-                    # --- 🔥 新規論文として追加（保存はここではしない） ---
-                    if pmid_elem is not None:
-                        print(f"[DEBUG] PubMed 新規論文追加: PMID={pmid}, pub_date={pub_date}, keyword={selected_keyword}")
-                        all_papers.append({
-                            "title": "".join(title_elem.itertext()).strip() if title_elem is not None else "No title",
-                            "abstract": abstract,
-                            "pmid": pmid,
-                            "journal": journal,
-                            "pub_date": pub_date,
-                            "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
-                            "search_keyword": selected_keyword
-                        })
-
+    
+            print(f"[DEBUG] PubMed 新規論文追加: PMID={pmid}")
+    
+            all_papers.append({
+    
+                "title": "".join(title_elem.itertext()).strip()
+                         if title_elem is not None else "No title",
+    
+                "abstract": abstract,
+    
+                "pmid": pmid,
+    
+                "journal": journal,
+    
+                "pub_date": pub_date,
+    
+                "url": f"https://pubmed.ncbi.nlm.nih.gov/{pmid}/",
+    
+                "search_keyword": selected_keyword
+            })
         except Exception as e:
             print(f"PubMed APIエラー (キーワード: {selected_keyword}): {str(e)}")
             continue

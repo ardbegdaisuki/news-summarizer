@@ -617,39 +617,9 @@ if __name__ == "__main__":
                 "search_keyword": a["search_keyword"]
             })
 
-        all_sources = []
 
-        # 🕒 親メッセージ（スレッドの起点）
-        timestamp = (datetime.utcnow() + timedelta(hours=9)).strftime("%Y-%m-%d %H:%M:%S")
-        parent_ts = send_notification(f"🕒 *送信日時*: {timestamp}\n\n---")
-
-        # PubMed
-        for paper in papers:
-            primary_kw = extract_primary_keyword(paper.get('search_keyword', ''))
-            content = f"{paper['title']}\n\n{paper['abstract']}"
-            summary = translate_and_summarize(ai_config, content, target_lang)
-            send_notification(
-                f"📄【PubMed】\n🔍 `{primary_kw}`\n"
-                f"*雑誌*: {paper.get('journal')}\n*発表日*: {paper.get('pub_date')}\n"
-                f"*翻訳要約*\n{summary}\n\n"
-                f"*Title*: {paper['title']}\n*URL*: {paper['url']}",
-                thread_ts=parent_ts
-            )
-
-        # arXiv
-        for a in arxiv_papers:
-            primary_kw = extract_primary_keyword(a.get('search_keyword', ''))
-            content = f"{a['title']}\n\n{a['abstract']}"
-            summary = translate_and_summarize(ai_config, content, target_lang)
-            send_notification(
-                f"📄【arXiv】\n🔍 `{primary_kw}`\n"
-                f"*発表日*: {a.get('pub_date')}\n"
-                f"*翻訳要約*\n{summary}\n\n"
-                f"*Title*: {a['title']}\n*URL*: {a['url']}",
-                thread_ts=parent_ts
-            )
 
     except Exception as e:
         error_msg = f"⚠️ 致命的なエラー: {str(e)}"
         print(error_msg)
-        send_notification(error_msg)
+

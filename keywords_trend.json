@@ -9,7 +9,7 @@
     "(deep learning OR machine learning) AND (magnetic resonance imaging OR MRI)"
   ],
   "arxiv": [
-    "\"deep learning\" AND cs.CV"
+     'all:"deep learning" AND cat:cs.CV'
   ],
   "news": [
     "(AI OR Machine Learning) AND (research OR study)",

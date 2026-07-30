@@ -64,16 +64,23 @@ jobs:
         run: python main_trend.py
 
       - name: Save repository
-        run: |          
+        run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
       
           git add seen_papers_trend.json papers.db
           find obsidian_vault/papers -name "*.md" -exec git add {} \;
       
+          echo "===== git status ====="
+          git status
+      
+          echo "===== git diff ====="
+          git diff --cached --stat
+      
           git commit -m "Update papers and seen list [auto]" || echo "No changes to commit"
       
-          git push origin main     
-          
- 
+          echo "===== git push ====="
+          git push origin main  
+                
+       
 

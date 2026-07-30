@@ -84,7 +84,8 @@ jobs:
           echo "===== ADD ====="
           git add seen_papers_trend.json papers.db
           
-          git add obsidian_vault || true
+          #git add obsidian_vault || true
+          git add -A obsidian_vault || true
           git commit -m "Update Obsidian vault [auto]" || echo "No changes to commit"
 
           echo "===== STATUS AFTER ADD ====="

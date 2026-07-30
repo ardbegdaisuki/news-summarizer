@@ -590,41 +590,18 @@ def extract_primary_keyword(query: str) -> str:
     return q
 
 if __name__ == "__main__":
-    try:
-        ai_config = init_ai_client()
-        target_lang = os.getenv("TARGET_LANGUAGE", "ja")
 
-        papers = fetch_pubmed_papers()
-        arxiv_papers = fetch_arxiv_papers()
+    init_db()
 
-        # --- SQLite 初期化 ---
-        init_db()
+    papers = fetch_pubmed_papers()
+    arxiv = fetch_arxiv_papers()
 
-        # --- PubMed 保存 ---
-        for p in papers:
-            save_paper_to_db({
-                "pid": p["pmid"],
-                "title": p["title"],
-                "abstract": p["abstract"],
-                "journal": p["journal"],
-                "pub_date": p["pub_date"],
-                "source": "pubmed",
-                "search_keyword": p["search_keyword"]
-            })
+    for p in papers:
+        save_paper_to_db(...)
 
-        # --- arXiv 保存 ---
-        for a in arxiv_papers:
-            save_paper_to_db({
-                "pid": a["url"],
-                "title": a["title"],
-                "abstract": a["abstract"],
-                "journal": ", ".join(a.get("authors", [])),
-                "pub_date": a["pub_date"],
-                "source": "arxiv",
-                "search_keyword": a["search_keyword"]
-            })
-        export_papers_to_obsidian()
-    except Exception as e:
-        print(f"⚠️ 致命的なエラー: {str(e)}")
+    for p in arxiv:
+        save_paper_to_db(...)
+
+    export_papers_to_obsidian()
 
 

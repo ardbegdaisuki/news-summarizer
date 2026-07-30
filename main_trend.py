@@ -35,6 +35,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+
 def save_paper_to_db(paper):
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()

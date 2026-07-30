@@ -71,6 +71,7 @@ def load_seen_papers():
         return {"pubmed": [], "arxiv": []}
 
 def save_seen_papers(seen):
+    print("[DEBUG] JSON保存:", SEEN_FILE)
     with open(SEEN_FILE, "w") as f:
         json.dump(seen, f, indent=2)
 
@@ -395,12 +396,14 @@ def fetch_pubmed_papers():
     final_papers = sorted(all_papers, key=lambda x: normalize_pub_date(x["pub_date"]), reverse=True)[:5]
 
     # --- 🔥 最新5件だけ保存 ---
+    print("[DEBUG] 最終PubMed:", len(final_papers))
     for p in final_papers:
         seen_pubmed.add(p["pmid"])
 
     seen["pubmed"] = list(seen_pubmed)
     save_seen_papers(seen)
-
+    print("[DEBUG] save_seen_papers()")
+    print("[DEBUG] 保存件数:", len(seen_pubmed))
     return final_papers
 
     

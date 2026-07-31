@@ -615,7 +615,12 @@ if __name__ == "__main__":
                 thread_ts=parent_ts
             )
 
-    except Exception as e:
-        error_msg = f"⚠️ 致命的なエラー: {str(e)}"
-        print(error_msg)
-        send_notification(error_msg)
+    except Exception:
+        print(traceback.format_exc())
+
+        try:
+            send_notification(traceback.format_exc())
+        except:
+            pass
+
+        raise

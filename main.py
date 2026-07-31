@@ -6,6 +6,7 @@ from openai import OpenAI
 import google.generativeai as genai
 from datetime import datetime, timedelta
 import json
+import traceback
 # from dotenv import load_dotenv
 
 # 環境変数読み込み
@@ -35,33 +36,39 @@ MONTH_MAP = {
 from datetime import datetime
 
 def normalize_pub_date(pub_date):
-    if pub_date is None or pub_date == "No date":
+    if not pub_date or pub_date == "No date":
         return datetime.min
 
-    # 例: "2026-Jan"
-    if "-" in pub_date and pub_date.split("-")[1].isalpha():
-        year, mon = pub_date.split("-")
-        mon = MONTH_MAP.get(mon, "01")
-        return datetime.strptime(f"{year}-{mon}-01", "%Y-%m-%d")
+    parts = pub_date.split("-")
 
-    # 例: "2026-06-25"
+    # 2026-Jan や 2026-Jan-15
+    if len(parts) >= 2 and parts[1].isalpha():
+        year = parts[0]
+        month = MONTH_MAP.get(parts[1], "01")
+        day = parts[2] if len(parts) >= 3 else "01"
+
+        return datetime.strptime(
+            f"{year}-{month}-{day}",
+            "%Y-%m-%d"
+        )
+
+    # 2026-07-31
     try:
         return datetime.strptime(pub_date, "%Y-%m-%d")
-    except:
+    except ValueError:
         pass
 
-    # 例: "2026-06"
+    # 2026-07
     try:
         return datetime.strptime(pub_date, "%Y-%m")
-    except:
+    except ValueError:
         pass
 
-    # MedlineDate など（例: "2020 Jan-Feb"）
-    for m in MONTH_MAP:
-        if m in pub_date:
-            year = pub_date.split()[0]
-            mon = MONTH_MAP[m]
-            return datetime.strptime(f"{year}-{mon}-01", "%Y-%m-%d")
+    # 2026
+    try:
+        return datetime.strptime(pub_date, "%Y")
+    except ValueError:
+        pass
 
     return datetime.min
     

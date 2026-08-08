@@ -4,10 +4,10 @@ concurrency:
   group: news-summary-trend
   cancel-in-progress: false
 
-on:
-  schedule:
-    - cron: "0 8 * * *"  # UTC9:00（日本時間18:00）に毎日実行
-  workflow_dispatch:      # 手動実行可能
+#on:
+#  schedule:
+#    - cron: "0 8 * * *"  # UTC9:00（日本時間18:00）に毎日実行
+#  workflow_dispatch:      # 手動実行可能
 
 jobs:
   summarize:
